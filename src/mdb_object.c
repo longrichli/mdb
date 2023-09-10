@@ -242,10 +242,10 @@ return:
 mobj *mdbCreateObject(mobjType type, void *ptr) {
     int ret = -1;
     mobj *obj = NULL;
-    if(ptr == NULL) {
-        mdbLogWrite(LOG_ERROR, "mdbCreateObject() | At %s:%d", __FILE__, __LINE__);
-        goto __finish;
-    }
+    // if(ptr == NULL) {
+    //     mdbLogWrite(LOG_ERROR, "mdbCreateObject() | At %s:%d", __FILE__, __LINE__);
+    //     goto __finish;
+    // }
     obj = mdbMalloc(sizeof(*obj));
     if(obj == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbCreateObject() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
@@ -390,7 +390,7 @@ mobj *mdbGetDecodedObject(mobj *obj) {
     int ret = -1;
     mobj *dec = NULL;
     char buf[32] = {0};
-    if(obj == NULL || obj->encoding != MDB_STRING) {
+    if(obj == NULL || obj->type != MDB_STRING) {
         mdbLogWrite(LOG_ERROR, "mdbGetDecodedObject() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
@@ -456,8 +456,10 @@ mobj *mdbCreateStringObjectFromLongLong(long long value) {
     mobj *obj = NULL;
     int ret = -1;
     if(value >= 0 && value < MDB_SHARED_INTEGERS) {
+        mdbLogWrite(LOG_DEBUG, "mdbCreateStringObjectFromLongLong() | Use Shared Object");
         // 使用共享对象
         obj = gshared.integers[value];
+        mdbLogWrite(LOG_DEBUG, "obj : %s", obj == NULL ? "NULL" : "NOT NULL");
     } else if(value >= LONG_MIN && value <= LONG_MAX) {
         obj = mdbCreateObject(MDB_STRING, (void *)value);
         if(obj == NULL) {
@@ -739,13 +741,13 @@ return:
     成功: 0
     失败: -1
 */
-int mdbCreateSharedObject(void) {
+int mdbCreateSharedObjects(void) {
     int ret = -1;
     for(int i = 0; i < MDB_SHARED_INTEGERS; i++) {
         gshared.integers[i] = NULL;
         gshared.integers[i] = mdbCreateObject(MDB_STRING, (void *)i);
         if(gshared.integers[i] == NULL) {
-            mdbLogWrite(LOG_ERROR, "mdbCreateSharedObject() mdbCreateObject() | At %s:%d", __FILE__, __LINE__);
+            mdbLogWrite(LOG_ERROR, "mdbCreateSharedObjects() mdbCreateObject() | At %s:%d", __FILE__, __LINE__);
             goto __finish;
         }
         gshared.integers[i]->encoding = MDB_ENCODING_INT;

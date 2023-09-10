@@ -280,7 +280,7 @@ return:
     成功: 0
     失败: -1
 */
-int mdbCreateSharedObject(void);
+int mdbCreateSharedObjects(void);
 
 /*
 des:

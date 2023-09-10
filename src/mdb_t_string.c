@@ -1,4 +1,5 @@
 #include "mdb.h"
+#include "mdb_util.h"
 
 // 字符串相关命令
 // SET	向内存数据库中存入一个字符串。
@@ -121,7 +122,6 @@ void mdbCommandAppend(mdbClient *c) {
         if(mdbSendReply(fd, "ERR: wrong number of arguments for 'append' command\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandAppend() | At %s:%d", __FILE__, __LINE__);
-            return;
         }
         return;
     }
@@ -139,7 +139,6 @@ void mdbCommandAppend(mdbClient *c) {
         if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandAppend() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
-            return;
         }
         return;
     }
@@ -150,7 +149,6 @@ void mdbCommandAppend(mdbClient *c) {
         if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandAppend() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
-            return;
         }
         return;
     }
@@ -164,7 +162,6 @@ void mdbCommandAppend(mdbClient *c) {
         if(mdbSendReply(fd, "ERR: append key-value failed\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandAppend() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
-            return;
         }
         return;
     }
@@ -174,29 +171,120 @@ void mdbCommandAppend(mdbClient *c) {
     if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandAppend() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
-        return;
     } 
 }
 // INCRBY	如果字符串可以转换成整数，对其进行加法运算，将运算结果保存。如果不能转成整数，返回一个错误。
 // 例如：INCRBY key increment
 void mdbCommandIncrby(mdbClient *c) {
-    // int fd = c->fd;
-    // if(c->argc != 3) {
-    //     // 发送错误信息
-    //     if(mdbSendReply(fd, "ERR: wrong number of arguments for 'incrby' command\r\n", MDB_REP_ERROR) < 0) {
-    //         // 发送失败
-    //         mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
-    //         return;
-    //     }
-    //     return;
-    // }
-    // // 根据key获取value
-    // mobj *val = mdbDictFetchValue(c->db->dict, c->argv[1]);
-    // if(val == NULL) {
-    //     // 不存在key, 
-    //     mdbCommandSet(c);
-    //     return;
-    // }
+    int fd = c->fd;
+    if(c->argc != 3) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'incrby' command\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+        }
+        goto __finish;
+    }
+    // 根据key获取value
+    mobj *val = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(val == NULL) {
+        // 不存在key, 看看value是否可以转换成整数
+        long long increment;
+        if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &increment) < 0) {
+            // 发送错误信息
+            if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+            }
+            goto __finish;
+        }
+        // 创建新的value
+        mobj *newVal = mdbCreateStringObjectFromLongLong(increment);
+        if(newVal == NULL) {
+            // 发送错误信息
+            if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+            }
+            goto __finish;
+        }
+        // dup key
+        mobj *key = mdbDupStringObject(c->argv[1]);
+        // 设置key-value
+        if(mdbDictAdd(c->db->dict, key, newVal) < 0) {
+            // 发送错误信息
+            if(mdbSendReply(fd, "ERR: add key-value failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+            }
+            goto __finish;
+        }
+        // 回复OK
+        if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+        }
+        goto __finish;
+    }
+    // 获取val的解码对象
+    mobj *decodedVal = mdbGetDecodedObject(val);
+    if(decodedVal == NULL) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+        }
+        goto __finish;
+    }
+    long long oldVal;
+    if(mdbIsStringRepresentableAsLong(decodedVal->ptr, &oldVal) < 0) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+        }
+        goto __finish;
+    }
+    // 看看value是否可以转换成整数
+    long long increment;
+    if(mdbIsObjectRepresentableAsLongLong(c->argv[2], &increment) < 0) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+        }
+        goto __finish;
+    }
+    // 创建新的value
+    mobj *newVal = mdbCreateStringObjectFromLongLong(increment + oldVal);
+    if(newVal == NULL) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+        }
+        goto __finish;
+    }
+    // dup key
+    mobj *key = mdbDupStringObject(c->argv[1]);
+    // 设置key-value
+    if(mdbDictReplace (c->db->dict, key, newVal) < 0) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: add key-value failed\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+        }
+        goto __finish;
+    }
+    // 释放内存
+    mdbDecrRefCount(decodedVal);
+    // 发送ok
+    if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
+        // 发送失败
+        mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
+    }
+__finish:
+    return;
 }
 // DECRBY	如果字符串可以转换成整数，对其进行减法运算，将运算结果保存。如果不能转成整数，返回一个错误。
 // 例如：DECRBY key decrement

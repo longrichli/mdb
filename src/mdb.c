@@ -434,6 +434,12 @@ int initMdbServer(void) {
         mdbLogWrite(LOG_ERROR, "initMdbServer() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
+
+    // 创建共享对象
+    if(mdbCreateSharedObjects() < 0) {
+        mdbLogWrite(LOG_ERROR, "initMdbServer() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
     ret = 0;
 __finish:
     return ret;

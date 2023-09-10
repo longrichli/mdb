@@ -17,7 +17,11 @@ int mdbLonglong2Stirng(char *numberStr, size_t len, long long val) {
     char buf[32] = {0};
     char *ptr = NULL;
     unsigned long long v = 0;
-    if(val == 0) return 0;
+    if(val == 0) {
+        numberStr[0] = '0';
+        numberStr[1] = '\0';
+        return 1;
+    }
     v = val < 0 ? -val : val;
     ptr = &buf[31];
     while(v > 0) {
@@ -32,7 +36,7 @@ int mdbLonglong2Stirng(char *numberStr, size_t len, long long val) {
     if(l + 1 > len) {
         l = len -1;
     }
-    memcpy(numberStr, buf, l);
+    memcpy(numberStr, ptr, l);
     numberStr[l] = '\0';
     return l;
 }
