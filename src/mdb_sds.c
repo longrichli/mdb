@@ -19,17 +19,17 @@ return:
 SDS *sdsnewlen(SDS *sds, size_t newlen) {
     int ret = -1;
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdsnewlen() | file[%s], line[%d]", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "sdsnewlen() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     if(sds->len > newlen) {
-        mdbLogWrite(LOG_ERROR, "sdsnewlen() | file[%s], line[%d]", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "sdsnewlen() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     /* 多分配一个字节用来存放 '\0' */
     sds = mdbRealloc(sds, sizeof(SDS) + newlen + 1);
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdsnewlen() | file[%s], line[%d]", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "sdsnewlen() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     sds->free = newlen - sds->len;
@@ -53,7 +53,7 @@ SDS *newsds(char *str) {
     int initlen = str == NULL ? 0 : strlen(str);
     sds = mdbMalloc(sizeof(SDS) + initlen + 1);
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "newsds() mdbMalloc() | file[%s], line[%d]",
+        mdbLogWrite(LOG_ERROR, "newsds() mdbMalloc() | At %s:%d",
                      __FILE__, __LINE__);
         goto __finish;
     }
@@ -92,7 +92,7 @@ SDS *sdscat(SDS *sds, char *str) {
     size_t newlen = 0;
     int strLen = 0;
     if(sds == NULL || str == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdscat() | file[%s], line[%d]", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "sdscat() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     strLen = strlen(str);
@@ -127,7 +127,7 @@ SDS *sdscatsds(SDS *dest, SDS *src) {
     size_t newlen = 0;
     size_t strLen = 0;
     if(dest == NULL || src == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdscatsds() | file[%s], line[%d]", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "sdscatsds() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     strLen = src->len;
@@ -159,7 +159,7 @@ return:
 */
 SDS *sdsclear(SDS *sds) {
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdsclear() | file[%s], line[%d]", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "sdsclear() | At %s:%d", __FILE__, __LINE__);
         return NULL;
     }
     sds->free += sds->len;
@@ -188,7 +188,7 @@ return:
 */
 ssize_t sdsavail(SDS *sds) {
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdsavail() | file[%s], line[%d]", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "sdsavail() | At %s:%d", __FILE__, __LINE__);
         return -1;
     }
     return sds->free;
@@ -205,7 +205,7 @@ return:
 */
 ssize_t sdslen(SDS *sds) {
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdslen() | file[%s], line[%d]", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "sdslen() | At %s:%d", __FILE__, __LINE__);
         return -1;
     }
     return sds->len;

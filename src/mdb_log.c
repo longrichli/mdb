@@ -1,6 +1,6 @@
 #include <time.h>
-#include "mdb_common.h"
 #include <stdarg.h>
+#include "mdb_common.h"
 
 
 // 定义 ANSI 转义序列来设置文本颜色
@@ -41,7 +41,7 @@ void mdbLogWrite(logLevel level, char *fmt, ...) {
             fp = stdout;
             stdOut = 1;
         } else {
-            fp = fopen(gLogFilename, "a+");
+            fp = mdbCreateFile(gLogFilename, "a+");
             if(fp == NULL) {
                 abort();
             }
@@ -75,6 +75,10 @@ void mdbLogWrite(logLevel level, char *fmt, ...) {
         vfprintf(fp, fmt, args);
         va_end(args);
         fwrite("\n", sizeof(char), 1, fp);
+        if(stdOut != 1) {
+            fclose(fp);
+        }
     }
+
     
 }
