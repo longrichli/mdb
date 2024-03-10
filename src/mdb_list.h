@@ -16,7 +16,7 @@ typedef struct linkedList {
     size_t len;                 /* 链表长度 */
     void *(*dup)(void *ptr);    /* 用于复制节点的值 */
     void (*free)(void *ptr);    /* 用于释放节点的值的内存 */
-    int (*match)(void *ptr, void *key); /* 用于判断两个节点的值是否相等 */
+    int (*match)(void *ptr, void *key); /* 用于判断两个节点的值是否相等 相等返回 1 , 不相等返回 0*/
 } linkedList;
 
 
@@ -26,8 +26,11 @@ des:
 param: 
     list: 要进行设置的链表
     dup: dup函数地址
+return: 
+    成功: 0
+    失败: 小于0的错误码
 */
-void mdbListSetDupMethod(linkedList *list, void *(*dup)(void *));
+int mdbListSetDupMethod(linkedList *list, void *(*dupMethod)(void *));
 
 /*
 des:
@@ -46,8 +49,11 @@ des:
 param: 
     list: 要进行设置的链表
     free: free函数地址
+return: 
+    成功: 0
+    失败: 小于 0 的错误码
 */
-void mdbListSetFreeMethod(linkedList *list, void (*free)(void *));
+int mdbListSetFreeMethod(linkedList *list, void (*freeMethod)(void *));
 
 /*
 des:
@@ -58,7 +64,7 @@ return:
     成功: free函数地址
     失败: NULL
 */
-void (*mdbListGetFreeMethod(linkedList *list))(void);
+void (*mdbListGetFreeMethod(linkedList *list))(void *);
 
 /*
 des:
@@ -66,8 +72,11 @@ des:
 param: 
     list: 要进行设置的链表
     match: match函数地址
+return: 
+    成功: 0
+    失败: 小于 0 的错误码
 */
-void mdbListSetMatchMethod(linkedList *list, int (*match)(void *, void *));
+int mdbListSetMatchMethod(linkedList *list, int (*matchMethod)(void *, void *));
 
 /*
 des:
@@ -86,9 +95,10 @@ des:
 param:
     list: 获取长度的链表
 return:
-    链表长度
+    成功: 链表长度
+    失败: 小于0的错误码
 */
-size_t mdbListLength(linkedList *list);
+ssize_t mdbListLength(linkedList *list);
 
 /*
 des:
@@ -147,11 +157,15 @@ void *mdbListNodeValue(listNode *node);
 /*
 des:
     创建一个不包含任何节点的新链表
+param:
+    dupMethod: 复刻链表中的值的函数
+    freeMethod: 释放链表中的值的函数
+    mathcMethod: 查看链表中的节点的值和给定的值是否相等的函数
 return:
     成功: 创建的链表
     失败: NULL
 */
-linkedList *mdbListCraete(void);
+linkedList *mdbListCraete(void *(*dupMethod)(void *), void(*freeMethod)(void *), int(*matchMethod)(void *, void*));
 
 /*
 des:
@@ -175,7 +189,77 @@ return:
     成功: 添加完之后的链表
     失败: NULL
 */
-linkedList *mdbAddNodeTail(void *val);
+linkedList *mdbAddNodeTail(linkedList *list, void *val);
+
+/*
+des:
+    将一个包含给定值的新节点添加到给定节点之前或之后
+param:
+    list: 给定链表
+    oldNode: 给定节点
+    val: 新节点的值
+    after: 是否在oldNode的后面插入, 否则在前面插入
+return:
+    成功: 插入后的链表
+    失败: NULL
+*/
+linkedList *mdbListInsertNode(linkedList *list, listNode *oldNode, void *val, int after);
+
+/*
+des:
+    查找并返回链表中包含指定值的节点
+param:
+    list: 链表
+    val: 给定值
+return:
+    如果存在给定值的节点,返回此节点,否则返回 NULL
+*/
+listNode *mdbListSearchKey(linkedList *list, void *val);
+
+/*
+des:
+    返回链表中给定索引上的节点
+param:
+    list: 链表
+    index: 索引
+return:
+    成功: 指定索引的节点
+    失败: NULL
+*/
+listNode *mdbListIndex(linkedList *list, int index);
+
+
+/*
+des:
+    从链表中删除给定节点
+param:
+    list: 链表
+    node: 节点
+return:
+    成功: 删除节点后的链表
+    失败: NULL
+*/
+linkedList *mdbListDelNode(linkedList *list, listNode *node);
+
+/*
+des:
+    复制一个给定链表的副本
+param:
+    给定链表
+return:
+    链表的副本
+*/
+linkedList *mdbListDup(linkedList *list);
+
+/*
+des:
+    释放给定链表及其链表上的所有节点
+param:
+    list: 给定链表
+*/
+void mdbListFree(linkedList *list);
+
+
 
 
 

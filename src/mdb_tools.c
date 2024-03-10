@@ -116,9 +116,9 @@ FILE *mdbCreateFile(const char *filename, const char *mode) {
         mdbLogWrite(LOG_ERROR, "mdbCreateFile() getcwd() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    // 使用filename 副本进行操作
+    /* 使用filename 副本进行操作 */
     strcpy(filenameDup, filename);
-    // 如果第一个字符就是 '/', 说明是从跟目录开始, 应该切换到根目录进行创建
+    /* 如果第一个字符就是 '/', 说明是从跟目录开始, 应该切换到根目录进行创建 */
     if(filenameDup[0] == '/' || filenameDup[0] == '\\') {
         chdir("/");
     }

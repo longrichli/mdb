@@ -3,7 +3,7 @@
 #include "mdb_common.h"
 
 
-// 定义 ANSI 转义序列来设置文本颜色
+/* 定义 ANSI 转义序列来设置文本颜色 */
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
@@ -67,7 +67,7 @@ void mdbLogWrite(logLevel level, char *fmt, ...) {
                 break; 
         }
         fwrite("[", sizeof(char), 1, fp);
-        // 获取当前时间
+        /* 获取当前时间 */
         getcurrtime(currtime);
         fwrite(currtime, sizeof(char), 19, fp);
         fwrite("]: ", sizeof(char), 3, fp);
