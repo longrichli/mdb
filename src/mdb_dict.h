@@ -11,9 +11,9 @@ typedef struct dictEntry {
 
 typedef struct dictht {
     dictEntry **table;  /* hash 表数组 */
-    size_t sz;          /* hash 表大小 */
-    size_t mask;        /* hash 表大小掩码, 总是等于 sz -1 */
-    size_t used;        /* 该hash 表已有节点的数量 */
+    int sz;          /* hash 表大小 */
+    int mask;        /* hash 表大小掩码, 总是等于 sz -1 */
+    int used;        /* 该hash 表已有节点的数量 */
 } dictht;
 
 typedef struct dictType {
@@ -21,14 +21,14 @@ typedef struct dictType {
     void *(*keyDup)(const void *key);                       /* 复制 key 的函数 */
     void *(*valDup)(const void *val);                       /* 复制 val 的函数 */
     int (*keyCompare)(const void *key1, const void *key2);  /* 对比 key 的函数 */ 
-    void (*keyFree)(const void *key);                       /* 释放 key 的函数 */
-    void (*valFree)(const void *val);                       /* 释放 val 的函数*/
+    void (*keyFree)(void *key);                       /* 释放 key 的函数 */
+    void (*valFree)(void *val);                       /* 释放 val 的函数*/
 } dictType;
 
 typedef struct dict {
     dictType *type;                                         /* 类型特定函数 */
     dictht ht[2];                                           /* hash 表*/
-    size_t trehashidx;                                         /* rehash 索引, 当 rehash 不再进行时, 值为 -1 */
+    int trehashidx;                                         /* rehash 索引, 当 rehash 不再进行时, 值为 -1 */
 } dict;
 
 /*
@@ -45,7 +45,7 @@ dict *mdbDictCreate(dictType * type);
 
 /*
 des:
-    添加一个键值对, 如果已经存在键,则将值替换成新的值
+    添加一个键值对, 如果已经存在键,返回错误
 param:
     d: 字典
     key: key
@@ -55,6 +55,19 @@ return:
     失败: -1
 */
 int mdbDictAdd(dict *d, void *key, void *val);
+
+/*
+des:
+    添加一个键值对, 如果已经存在键,则将值替换成新的值
+param:
+    d: 字典
+    key: key
+    val: value
+return:
+    成功: 0
+    失败: -1
+*/
+int mdbDictReplace(dict *d, void *key, void *val);
 
 /*
 des:

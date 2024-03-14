@@ -12,6 +12,90 @@ static void initDictht(dictht *ht) {
     ht->table = NULL;
     ht->used = 0;
 }
+
+/*
+des:
+    拿到key所在的Entry
+param:
+    d: 字典
+    key: key
+return:
+    成功: key所在的Entry
+    失败: NULL
+*/
+static dictEntry *dictFetchEntry(dict *d, void *key) {
+    int ret = -1;
+    size_t tableIdx = 0;
+    unsigned int hash = 0;
+    dictEntry *tmpEntry;
+    if(d == NULL || key == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbDictFetchValue() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    hash = d->type->hashFunction(key);
+    /* 先在 ht[0] 找 */
+    if(d->ht[0].table != NULL) {
+        tableIdx = hash & d->ht[0].mask;
+        tmpEntry = d->ht[0].table[tableIdx];
+        while(tmpEntry != NULL) {
+            if(d->type->keyCompare(tmpEntry->key, key) == 0) {
+                /* 找到了 */
+                ret = 0;
+                goto __finish;
+            }
+            tmpEntry = tmpEntry->next;
+        }
+    }
+    if(d->trehashidx != -1) {
+        /* 正在进行rehash , 在ht[1]中找 */
+        tableIdx = hash & d->ht[1].mask;
+        tmpEntry = d->ht[1].table[tableIdx];
+        while(tmpEntry != NULL) {
+            if(d->type->keyCompare(tmpEntry->key, key) == 0) {
+                /* 找到了 */
+                ret = 0;
+                goto __finish;
+            }
+            tmpEntry = tmpEntry->next;
+        }    
+    }
+    ret = 0;
+__finish:
+    return ret == 0 ? tmpEntry : NULL;
+}
+
+static void dictRehash(dict *d) {
+    int tableIdx = 0;
+    unsigned int hash = 0;
+    dictEntry *tmpEntry = NULL;
+    if(d == NULL) {
+        mdbLogWrite(LOG_ERROR, "dictRehash() | At %s:%d", __FILE__, __LINE__);
+        return;
+    }
+    if(d->trehashidx >= d->ht[0].sz) {
+        /* rehash 结束, 将ht[1] 的内容放到 ht[0] 上, 然后重置 ht[1], trehashidx 改为 -1 */
+        d->ht[0].sz = d->ht[1].sz;
+        d->ht[0].used = d->ht[1].used;
+        d->ht[0].mask = d->ht[1].mask;
+        d->ht[0].table = d->ht[1].table;
+        initDictht(&(d->ht[1]));
+        d->trehashidx = -1;
+    } else if(d->trehashidx >= 0) {
+        /* 进行 rehash, 将ht[0].table[trehashidx] 指向的链表中的值都插入到 ht[1]中 */
+        dictEntry *entry = d->ht[0].table[d->trehashidx];
+        while(entry != NULL) {
+            /* 临时保存一下 */
+            tmpEntry = entry->next; 
+            hash = d->type->hashFunction(entry->key);
+            tableIdx = hash & d->ht[1].mask;
+            entry->next = d->ht[1].table[tableIdx];
+            d->ht[1].table[tableIdx] = entry;
+            d->ht[1].used++;
+            d->ht[0].used--;
+            entry = tmpEntry;
+        }   
+    }
+}
 /*
 des:
     创建一个字典
@@ -51,7 +135,8 @@ int mdbDictResize(dict *d) {
         mdbLogWrite(LOG_ERROR, "mdbDictResize() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    loadFactor = (float)d->ht[0].used/d->ht[0].sz;
+    // 当 d->ht[0].sz == 0 时, 将负载因子改为较大的数, 以便进行扩展
+    loadFactor = d->ht[0].sz == 0 ? 100 : (float)d->ht[0].used/d->ht[0].sz;
     if(loadFactor >= EXPENT_LOAD_FACTOR) {
         /* 扩展 */
         sz = d->ht[0].sz * 2;
@@ -65,16 +150,16 @@ int mdbDictResize(dict *d) {
     }
     while(realSize < sz) {
         /* 真实大小 */
-        realSize << 1; 
+        realSize = realSize << 1; 
     }
     /* 如果比 DICT_INIT_SIZE 还小, 就为 DICT_INIT_SIZE */
     realSize = realSize < DICT_INIT_SIZE ? DICT_INIT_SIZE : realSize;
     d->ht[1].table = mdbMalloc(realSize * sizeof(dictEntry *));
-    memset(d->ht[1].table, 0, realSize * sizeof(dictEntry *));
-    if(mdbMalloc == NULL) {
+    if(d->ht[1].table == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbDictResize() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
+    memset(d->ht[1].table, 0, realSize * sizeof(dictEntry *));
     d->ht[1].sz = realSize;
     d->ht[1].used = 0;
     d->ht[1].mask = realSize - 1;
@@ -103,34 +188,21 @@ int mdbDictAdd(dict *d, void *key, void *val) {
     unsigned int hash = 0;
     dictEntry *newEntry = NULL;
     dictEntry *tmpEntry = NULL;
-    if(d == NULL || key == NULL) {
+    if(d == NULL || key == NULL  || val == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbDictAdd() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    mdbDictResize(d);
-    if(d->trehashidx >= d->ht[0].sz) {
-        /* rehash 结束, 将ht[1] 的内容放到 ht[0] 上, 然后重置 ht[1], trehashidx 改为 -1 */
-        d->ht[0].sz = d->ht[1].sz;
-        d->ht[0].used = d->ht[1].used;
-        d->ht[0].mask = d->ht[1].mask;
-        d->ht[0].table = d->ht[1].table;
-        initDictht(&(d->ht[1]));
-        d->trehashidx = -1;
-    } else if(d->trehashidx >= 0) {
-        /* 进行 rehash, 将ht[0].table[trehashidx] 指向的链表中的值都插入到 ht[1]中 */
-        dictEntry *entry = d->ht[0].table[d->trehashidx];
-        while(entry != NULL) {
-            /* 临时保存一下 */
-            tmpEntry = entry->next; 
-            hash = d->type->hashFunction(entry->key);
-            tableIdx = hash & d->ht[1].mask;
-            entry->next = d->ht[1].table[tableIdx];
-            d->ht[1].table[tableIdx] = entry;
-            d->ht[1].used++;
-            entry = tmpEntry;
-        }
-        
+    // 先找一下, 如果字典中存在了这个key, 返回错误
+    if((tmpEntry = dictFetchEntry(d, key)) != NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbDictAdd() dictFetchEntry() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
     }
+
+    if(mdbDictResize(d) < 0) {
+        mdbLogWrite(LOG_ERROR, "mdbDictAdd() dictFetchEntry() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    dictRehash(d);
     /* 选择往哪个 hash 表中添加, 如果 trehashidx 不等于 -1 , 说明正在rehash, 就向 ht[1] 添加, 否则就 ht[0] */
     htIdx = d->trehashidx == -1 ? 0 : 1;
     newEntry = mdbMalloc(sizeof(*newEntry));
@@ -152,6 +224,43 @@ __finish:
 
 /*
 des:
+    添加一个键值对, 如果已经存在键,则将值替换成新的值
+param:
+    d: 字典
+    key: key
+    val: value
+return:
+    成功: 0
+    失败: -1
+*/
+int mdbDictReplace(dict *d, void *key, void *val) {
+    int ret = -1;
+    dictEntry *tmpEntry = NULL;
+    if(d == NULL || key == NULL || val == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbDictReplace() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    // 先找一下, 如果字典中存在了这个key, 就把旧的换成新的值
+    if((tmpEntry = dictFetchEntry(d, key)) != NULL) {
+        // 存在这个key, 进行替换
+        d->type->keyFree(tmpEntry->key);
+        d->type->valFree(tmpEntry->val);
+        tmpEntry->key = key;
+        tmpEntry->val = val;
+        ret = 0;
+        goto __finish;
+    }
+    // 如果没有就添加
+    if(mdbDictAdd(d, key, val) < 0) {
+        mdbLogWrite(LOG_ERROR, "mdbDictReplace() mdbDictAdd() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+__finish:
+    return ret;
+}
+
+/*
+des:
     拿到key对于的值
 param:
     d: 字典
@@ -161,42 +270,14 @@ return:
     失败: NULL
 */
 void *mdbDictFetchValue(dict *d, void *key) {
-    int ret = -1;
-    size_t tableIdx = 0;
-    unsigned int hash = 0;
-    dictEntry *tmpEntry;
+    dictEntry * entry = NULL;
     if(d == NULL || key == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbDictFetchValue() | At %s:%d", __FILE__, __LINE__);
-        goto __finish;
+        return NULL;
     }
-    hash = d->type->hashFunction(key);
-    /* 先在 ht[0] 找 */
-    tableIdx = hash & d->ht[0].mask;
-    tmpEntry = d->ht[0].table[tableIdx];
-    while(tmpEntry != NULL) {
-        if(d->type->keyCompare(tmpEntry->key, key) == 0) {
-            /* 找到了 */
-            ret = 0;
-            goto __finish;
-        }
-        tmpEntry = tmpEntry->next;
-    }
-    if(d->trehashidx != -1) {
-        /* 正在进行rehash , 在ht[1]中找 */
-        tableIdx = hash & d->ht[1].mask;
-        tmpEntry = d->ht[1].table[tableIdx];
-        while(tmpEntry != NULL) {
-            if(d->type->keyCompare(tmpEntry->key, key) == 0) {
-                /* 找到了 */
-                ret = 0;
-                goto __finish;
-            }
-            tmpEntry = tmpEntry->next;
-        }    
-    }
-    ret = 0;
-__finish:
-    return ret == 0 ? (tmpEntry == NULL ? NULL : tmpEntry->val) : NULL;
+    dictRehash(d);
+    entry = dictFetchEntry(d, key);
+    return entry == NULL ? NULL : entry->val;
 }
 
 /*
@@ -209,7 +290,22 @@ return:
     成功: 0
     失败: -1
 */
-int mdbDictDelete(dict *d, void *key);
+int mdbDictDelete(dict *d, void *key) {
+    int ret = -1;
+    dictEntry *tmpEntry = NULL;
+    int tableIdx = 0;
+    unsigned int hash = 0;
+    if(d == NULL || key == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbDictDelete() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    dictRehash(d);
+    hash = d->type->hashFunction(key);
+    
+    ret = 0;
+__finish:
+    return ret;
+}
 
 /*
 des:
