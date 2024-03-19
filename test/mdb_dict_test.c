@@ -56,40 +56,33 @@ int main(void) {
         mdbLogWrite(LOG_ERROR, "main() mdbDictCreate()");
         exit(EXIT_FAILURE);
     }
-    char *key1 = strDup("11");
-    char *key2 = strDup("21");
-    char *key3 = strDup("31");
-    char *key4 = strDup("4");
-    char *key5 = strDup("5");
-    char *key6 = strDup("6");
-    char *key7 = strDup("6");
+    for(int i = 0; i < 1000; i++) {
+        char keybuf[10] = {0};
+        char valbuf[10] = {0};
+        sprintf(keybuf, "key%d", i);
+        sprintf(valbuf, "val%d", i);
+        char *key = strDup(keybuf);
+        char *val = strDup(valbuf);
+        mdbDictAdd(d, key, val);
+    }
+    // for(int i = 0; i < 1000; i++) {
+    //     char keybuf[10] = {0};
+    //     sprintf(keybuf, "key%d", i);
+    //     char *val = mdbDictFetchValue(d, keybuf);
+    //     printf("%s\n", val);
+    // }
+    for(int i = 0; i < 920; i++) {
+        char keybuf[10] = {0};
+        sprintf(keybuf, "key%d", i);
+        mdbDictDelete(d, keybuf);
+    }
 
-    char *val1 = strDup("one");
-    char *val2 = strDup("two");
-    char *val3 = strDup("three");
-    char *val4 = strDup("four");
-    char *val5 = strDup("five");
-    char *val6 = strDup("six");
-    char *val7 = strDup("seven");
-
-    mdbDictAdd(d, key1, val1);
-    mdbDictAdd(d, key2, val2);
-    mdbDictAdd(d, key3, val3);
-    mdbDictAdd(d, key4, val4);
-    mdbDictAdd(d, key5, val5);
-    mdbDictAdd(d, key6, val6);
-    mdbDictReplace(d, key7, val7);
-    void *v1 = mdbDictFetchValue(d, key1);
-    printf("%s\n", (char *)v1);
-    // void *v2 = mdbDictFetchValue(d, key2);
-    // printf("%s\n", (char *)v2);
-    // void *v3 = mdbDictFetchValue(d, key3);
-    // printf("%s\n", (char *)v3);
-    // void *v4 = mdbDictFetchValue(d, key4);
-    // printf("%s\n", (char *)v4);
-    // void *v5 = mdbDictFetchValue(d, key5);
-    // printf("%s\n", (char *)v5);
-    // void *v6 = mdbDictFetchValue(d, "6");
-    // printf("%s\n", (char *)v6);
+    for(int i = 0; i < 1000; i++) {
+        char keybuf[10] = {0};
+        sprintf(keybuf, "key%d", i);
+        char *val = mdbDictFetchValue(d, keybuf);
+        printf("%s\n", val == NULL ? "null" : val);
+    }
+    mdbDictFree(d);
     return 0;
 }

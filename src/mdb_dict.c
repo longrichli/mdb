@@ -34,7 +34,7 @@ static dictEntry *dictFetchEntry(dict *d, void *key) {
     }
     hash = d->type->hashFunction(key);
     /* 先在 ht[0] 找 */
-    if(d->ht[0].table != NULL) {
+    if(d->ht[0].table != NULL && d->ht[0].used > 0) {
         tableIdx = hash & d->ht[0].mask;
         tmpEntry = d->ht[0].table[tableIdx];
         while(tmpEntry != NULL) {
@@ -46,7 +46,7 @@ static dictEntry *dictFetchEntry(dict *d, void *key) {
             tmpEntry = tmpEntry->next;
         }
     }
-    if(d->trehashidx != -1) {
+    if(d->trehashidx != -1 && d->ht[1].table != NULL && d->ht[1].used > 0) {
         /* 正在进行rehash , 在ht[1]中找 */
         tableIdx = hash & d->ht[1].mask;
         tmpEntry = d->ht[1].table[tableIdx];
@@ -74,6 +74,8 @@ static void dictRehash(dict *d) {
     }
     if(d->trehashidx >= d->ht[0].sz) {
         /* rehash 结束, 将ht[1] 的内容放到 ht[0] 上, 然后重置 ht[1], trehashidx 改为 -1 */
+        // 释放ht[0].table的内存
+        mdbFree(d->ht[0].table);
         d->ht[0].sz = d->ht[1].sz;
         d->ht[0].used = d->ht[1].used;
         d->ht[0].mask = d->ht[1].mask;
@@ -93,7 +95,10 @@ static void dictRehash(dict *d) {
             d->ht[1].used++;
             d->ht[0].used--;
             entry = tmpEntry;
-        }   
+        } 
+        // 将 ht[0].table[trehashidx] 置为 NULL
+        d->ht[0].table[d->trehashidx] = NULL;  
+        d->trehashidx++;
     }
 }
 /*
@@ -137,11 +142,11 @@ int mdbDictResize(dict *d) {
     }
     // 当 d->ht[0].sz == 0 时, 将负载因子改为较大的数, 以便进行扩展
     loadFactor = d->ht[0].sz == 0 ? 100 : (float)d->ht[0].used/d->ht[0].sz;
-    if(loadFactor >= EXPENT_LOAD_FACTOR) {
+    if(loadFactor >= EXPENT_LOAD_FACTOR && d->ht[1].sz == 0) {
         /* 扩展 */
         sz = d->ht[0].sz * 2;
-    } else if(loadFactor <= SHRINK_LOAD_FACTOR) {
-        /* 缩小 */
+    } else if(loadFactor <= SHRINK_LOAD_FACTOR && d->ht[1].sz == 0) {
+        /* 缩小 , 当loadFactor 小于缩小因子, 并且 d->ht[1].sz == 0时缩小, 因为 如果d->ht[1] != 0, 说明正在扩展 */
         sz = d->ht[0].sz / 2;
     } else {
         /* 不用管 */
@@ -196,13 +201,11 @@ int mdbDictAdd(dict *d, void *key, void *val) {
     if((tmpEntry = dictFetchEntry(d, key)) != NULL) {
         mdbLogWrite(LOG_ERROR, "mdbDictAdd() dictFetchEntry() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
-    }
-
+    } 
     if(mdbDictResize(d) < 0) {
         mdbLogWrite(LOG_ERROR, "mdbDictAdd() dictFetchEntry() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    dictRehash(d);
     /* 选择往哪个 hash 表中添加, 如果 trehashidx 不等于 -1 , 说明正在rehash, 就向 ht[1] 添加, 否则就 ht[0] */
     htIdx = d->trehashidx == -1 ? 0 : 1;
     newEntry = mdbMalloc(sizeof(*newEntry));
@@ -217,6 +220,7 @@ int mdbDictAdd(dict *d, void *key, void *val) {
     newEntry->next = d->ht[htIdx].table[tableIdx];
     d->ht[htIdx].table[tableIdx] = newEntry;
     d->ht[htIdx].used++;
+    dictRehash(d);
     ret = 0;
 __finish:
     return ret;
@@ -275,8 +279,8 @@ void *mdbDictFetchValue(dict *d, void *key) {
         mdbLogWrite(LOG_ERROR, "mdbDictFetchValue() | At %s:%d", __FILE__, __LINE__);
         return NULL;
     }
-    dictRehash(d);
     entry = dictFetchEntry(d, key);
+    dictRehash(d);
     return entry == NULL ? NULL : entry->val;
 }
 
@@ -292,18 +296,72 @@ return:
 */
 int mdbDictDelete(dict *d, void *key) {
     int ret = -1;
-    dictEntry *tmpEntry = NULL;
-    int tableIdx = 0;
+    size_t tableIdx = 0;
     unsigned int hash = 0;
+    dictEntry *tmpEntry = NULL;
+    dictEntry *preEntry = NULL;
     if(d == NULL || key == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbDictDelete() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    dictRehash(d);
+    if(mdbDictResize(d) < 0) {
+        mdbLogWrite(LOG_ERROR, "mdbDictDelete() dictFetchEntry() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
     hash = d->type->hashFunction(key);
-    
+    /* 先在 ht[0] 找 */
+    if(d->ht[0].table != NULL && d->ht[0].used > 0) {
+        tableIdx = hash & d->ht[0].mask;
+        tmpEntry = d->ht[0].table[tableIdx];
+        preEntry = tmpEntry;
+        while(tmpEntry != NULL) {
+            if(d->type->keyCompare(tmpEntry->key, key) == 0) {
+                /* 找到了, 将这个节点删去 */
+                if(preEntry == tmpEntry) {
+                    //如果这俩相等, 说明时第一个节点, 将d->ht[0].table[tableIdx] 置空
+                    d->ht[0].table[tableIdx] = tmpEntry->next;
+                } else {
+                    preEntry->next = tmpEntry->next;
+                }
+                d->type->keyFree(tmpEntry->key);
+                d->type->valFree(tmpEntry->val);
+                mdbFree(tmpEntry);
+                d->ht[0].used--;
+                ret = 0;
+                goto __finish;
+            }
+            preEntry = tmpEntry;
+            tmpEntry = tmpEntry->next;
+        }
+    }
+    if(d->trehashidx != -1 && d->ht[1].table != NULL && d->ht[1].used > 0) {
+        /* 正在进行rehash , 在ht[1]中找 */
+        tableIdx = hash & d->ht[1].mask;
+        tmpEntry = d->ht[1].table[tableIdx];
+        preEntry = tmpEntry;
+        while(tmpEntry != NULL) {
+            if(d->type->keyCompare(tmpEntry->key, key) == 0) {
+                /* 找到了 */
+                if(preEntry == tmpEntry) {
+                    //如果这俩相等, 说明时第一个节点, 将d->ht[1].table[tableIdx] 置空
+                    d->ht[1].table[tableIdx] = tmpEntry->next;
+                } else {
+                    preEntry->next = tmpEntry->next;
+                }
+                d->type->keyFree(tmpEntry->key);
+                d->type->valFree(tmpEntry->val);
+                mdbFree(tmpEntry);
+                d->ht[1].used--;
+                ret = 0;
+                goto __finish;
+            }
+            preEntry = tmpEntry;
+            tmpEntry = tmpEntry->next;
+        }    
+    }
     ret = 0;
 __finish:
+    dictRehash(d);
     return ret;
 }
 
@@ -313,4 +371,46 @@ des:
 param:
     d: 字典
 */
-void mdbDictFree(dict *d);
+void mdbDictFree(dict *d) {
+    if(d != NULL) {  
+        dictEntry * entry = NULL;
+        dictEntry * tmpEntry = NULL;
+        if(d->ht[0].table != NULL) { 
+            // 释放节点内存
+            if(d->ht[0].used > 0) {
+                for(int i = 0; i < d->ht[0].sz; i++) {
+                    entry = d->ht[0].table[i];
+                    while(entry != NULL) {
+                        d->type->keyFree(entry->key);
+                        d->type->valFree(entry->val);
+                        tmpEntry = entry->next;
+                        mdbFree(entry);
+                        entry = tmpEntry; 
+                    }
+                }
+               
+            }
+            // 释放数组内存
+            mdbFree(d->ht[0].table);
+        }
+        if(d->ht[1].table != NULL) {
+            // 释放节点内存
+            if(d->ht[1].used > 0) {
+                for(int i = 0; i < d->ht[1].sz; i++) {
+                    entry = d->ht[1].table[i];
+                    while(entry != NULL) {
+                        d->type->keyFree(entry->key);
+                        d->type->valFree(entry->val);
+                        tmpEntry = entry->next;
+                        mdbFree(entry);
+                        entry = tmpEntry;
+                    }
+                } 
+            }
+            // 释放数组内存
+            mdbFree(d->ht[1].table);
+        }
+        mdbFree(d);
+    }
+
+}
