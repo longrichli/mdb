@@ -65,7 +65,7 @@ static intset *intsetUpgradeAndAdd(intset *iset, int64_t val, int *success) {
         goto __finish;
     }
     while(length-- > 0) {
-        intsetSet(iset, iset->length + prepend, intsetGetEncoded(iset, iset->length, curenc));
+        intsetSet(iset, length + prepend, intsetGetEncoded(iset, length, curenc));
     }
     if(prepend) {
         intsetSet(iset, 0, val);
@@ -101,11 +101,9 @@ static int intsetSearch(intset *iset, int64_t val, uint32_t *pos) {
         goto __finish;
     } else if(val < intsetGet(iset, 0)) {
         if(pos) *pos = 0;
-        mdbLogWrite(LOG_DEBUG, "val < intsetGet(iset, 0)");
         goto __finish;
     } else if(val > intsetGet(iset, iset->length - 1)) {
         if(pos) *pos = iset->length;
-        mdbLogWrite(LOG_DEBUG, "val > intsetGet(iset, iset->length - 1)");
         goto __finish;
     }
 
@@ -123,12 +121,12 @@ static int intsetSearch(intset *iset, int64_t val, uint32_t *pos) {
     if(val == cur) {
         //找到了
         if (pos) *pos = mid;
+        ret = 1;
     } else {
         if (pos) *pos = left;
     }
-
+    
 __finish:
-    mdbLogWrite(LOG_DEBUG, "val= %ld, cur= %ld", val, cur);
     return ret;
 }
 
