@@ -1,4 +1,4 @@
 #!/bin/bash
 make clean
-make dict_test
-./dict_test
+make intset_test
+./intset_test

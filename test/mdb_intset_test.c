@@ -30,7 +30,48 @@ int main(int argc, char **argv) {
     mdbLogWrite(LOG_INFO, "iset->encoding: %u, iset->length: %u", iset->encoding, mdbIntsetLen(iset));
     iset = mdbIntsetRemvoe(iset, val + 10, NULL);
     mdbLogWrite(LOG_INFO, "iset->encoding: %u, iset->length: %u", iset->encoding, mdbIntsetLen(iset));
-    
+    val = 1;
+    if(mdbIntsetFind(iset, val)) {
+        mdbLogWrite(LOG_INFO, "val %ld exist!", (int64_t) val);
+    } else {
+        mdbLogWrite(LOG_INFO, "val %ld not exist!", (int64_t) val);
+    }
+    val = 11;
+    if(mdbIntsetFind(iset, val)) {
+        mdbLogWrite(LOG_INFO, "val %ld exist!", (int64_t) val);
+    } else {
+        mdbLogWrite(LOG_INFO, "val %ld not exist!", (int64_t) val);
+    }
+    val = 111;
+    if(mdbIntsetFind(iset, val)) {
+        mdbLogWrite(LOG_INFO, "val %ld exist!", (int64_t) val);
+    } else {
+        mdbLogWrite(LOG_INFO, "val %ld not exist!", (int64_t) val);
+    }
+    val = 111111111;
+    if(mdbIntsetFind(iset, val)) {
+        mdbLogWrite(LOG_INFO, "val %ld exist!", (int64_t) val);
+    } else {
+        mdbLogWrite(LOG_INFO, "val %ld not exist!", (int64_t) val);
+    }
+
+    mdbIntsetGet(iset, 0, &val);
+    mdbLogWrite(LOG_INFO, "val: %ld", (int64_t) val);
+
+    mdbIntsetGet(iset, 3, &val);
+    mdbLogWrite(LOG_INFO, "val: %ld", (int64_t) val);
+
+    mdbIntsetGet(iset, 5, &val);
+    mdbLogWrite(LOG_INFO, "val: %ld", (int64_t) val);
+
+    mdbIntsetGet(iset, 7, &val);
+    mdbLogWrite(LOG_INFO, "val: %ld", (int64_t) val);
+
+    mdbIntsetGet(iset, 9, &val);
+    mdbLogWrite(LOG_INFO, "val: %ld", (int64_t) val);
+
+    mdbIntsetGet(iset, 11, &val);
+    mdbLogWrite(LOG_INFO, "val: %ld", (int64_t) val);
     mdbIntsetFree(iset);
     
     return 0;
