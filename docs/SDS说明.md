@@ -10,14 +10,14 @@ typedef struct _mdb_sds {
 ```
 ### API
 ```c
-SDS *newsds(char *str);
-SDS *newempty(void);
-SDS *sdscat(SDS *sds, char *str);
-SDS *sdscatsds(SDS *dest, SDS *src);
-SDS *sdsclear(SDS *sds);
-void sdsfree(SDS *sds);
-size_t sdsavail(SDS *sds);
-size_t sdslen(SDS *sds);
+SDS *mdbSdsnew(char *str);
+SDS *mdbSdsNewempty(void);
+SDS *mdbSdscat(SDS *sds, char *str);
+SDS *mdbSdscatsds(SDS *dest, SDS *src);
+SDS *mdbSdsclear(SDS *sds);
+void mdbSdsfree(SDS *sds);
+size_t mdbSdsavail(SDS *sds);
+size_t mdbSdslen(SDS *sds);
 
 
 

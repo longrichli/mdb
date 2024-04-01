@@ -10,9 +10,9 @@ int main(int argc, char **argv) {
         mdbLogWrite(LOG_ERROR, "main() mdbCreateFile()");
         exit(EXIT_FAILURE);
     }
-    SDS * sds = newsds("hello world");
+    SDS * sds = mdbSdsnew("hello world");
     fwrite(sds->buf, 1, sds->len, fp);
-    sdscat(sds, "\nhi world\n");
+    mdbSdscat(sds, "\nhi world\n");
     fwrite(sds->buf, 1, sds->len, fp);
     
     fclose(fp);

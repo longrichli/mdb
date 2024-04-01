@@ -101,6 +101,18 @@ static void dictRehash(dict *d) {
         d->trehashidx++;
     }
 }
+
+// BKDR哈希函数
+unsigned int mdbBkdrHash(const void *key) {
+    unsigned int seed = 131; // 也可以选择31、131、1313、13131、131313等
+    unsigned int hash = 0;
+    char *str = (char *)key;
+    while (*str) {
+        hash = hash * seed + (*str++);
+    }
+
+    return hash;
+}
 /*
 des:
     创建一个字典
@@ -247,8 +259,10 @@ int mdbDictReplace(dict *d, void *key, void *val) {
     // 先找一下, 如果字典中存在了这个key, 就把旧的换成新的值
     if((tmpEntry = dictFetchEntry(d, key)) != NULL) {
         // 存在这个key, 进行替换
-        d->type->keyFree(tmpEntry->key);
-        d->type->valFree(tmpEntry->val);
+        if(d->type->keyFree)
+            d->type->keyFree(tmpEntry->key);
+        if(d->type->valFree)
+            d->type->valFree(tmpEntry->val);
         tmpEntry->key = key;
         tmpEntry->val = val;
         ret = 0;
@@ -323,8 +337,10 @@ int mdbDictDelete(dict *d, void *key) {
                 } else {
                     preEntry->next = tmpEntry->next;
                 }
-                d->type->keyFree(tmpEntry->key);
-                d->type->valFree(tmpEntry->val);
+                if(d->type->keyFree)
+                    d->type->keyFree(tmpEntry->key);
+                if(d->type->valFree)
+                    d->type->valFree(tmpEntry->val);
                 mdbFree(tmpEntry);
                 d->ht[0].used--;
                 ret = 0;
@@ -348,8 +364,10 @@ int mdbDictDelete(dict *d, void *key) {
                 } else {
                     preEntry->next = tmpEntry->next;
                 }
-                d->type->keyFree(tmpEntry->key);
-                d->type->valFree(tmpEntry->val);
+                if(d->type->keyFree)
+                    d->type->keyFree(tmpEntry->key);
+                if(d->type->valFree)
+                    d->type->valFree(tmpEntry->val);
                 mdbFree(tmpEntry);
                 d->ht[1].used--;
                 ret = 0;
@@ -381,8 +399,10 @@ void mdbDictFree(dict *d) {
                 for(int i = 0; i < d->ht[0].sz; i++) {
                     entry = d->ht[0].table[i];
                     while(entry != NULL) {
-                        d->type->keyFree(entry->key);
-                        d->type->valFree(entry->val);
+                        if(d->type->keyFree)
+                            d->type->keyFree(entry->key);
+                        if(d->type->valFree)
+                            d->type->valFree(entry->val);
                         tmpEntry = entry->next;
                         mdbFree(entry);
                         entry = tmpEntry; 
@@ -399,8 +419,10 @@ void mdbDictFree(dict *d) {
                 for(int i = 0; i < d->ht[1].sz; i++) {
                     entry = d->ht[1].table[i];
                     while(entry != NULL) {
-                        d->type->keyFree(entry->key);
-                        d->type->valFree(entry->val);
+                        if(d->type->keyFree)
+                            d->type->keyFree(entry->key);
+                        if(d->type->valFree)
+                            d->type->valFree(entry->val);
                         tmpEntry = entry->next;
                         mdbFree(entry);
                         entry = tmpEntry;

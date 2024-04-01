@@ -16,20 +16,20 @@ return:
     成功: 分配后的sds
     失败: NULL
 */
-SDS *sdsnewlen(SDS *sds, size_t newlen) {
+SDS *mdbSdsnewlen(SDS *sds, size_t newlen) {
     int ret = -1;
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdsnewlen() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbSdsnewlen() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     if(sds->len > newlen) {
-        mdbLogWrite(LOG_ERROR, "sdsnewlen() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbSdsnewlen() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     /* 多分配一个字节用来存放 '\0' */
     sds = mdbRealloc(sds, sizeof(SDS) + newlen + 1);
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdsnewlen() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbSdsnewlen() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     sds->free = newlen - sds->len;
@@ -47,13 +47,13 @@ return:
     成功: SDS
     失败: NULL
 */
-SDS *newsds(char *str) {
+SDS *mdbSdsnew(char *str) {
     int ret = -1;
     SDS *sds = NULL;
     int initlen = str == NULL ? 0 : strlen(str);
     sds = mdbMalloc(sizeof(SDS) + initlen + 1);
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "newsds() mdbMalloc() | At %s:%d",
+        mdbLogWrite(LOG_ERROR, "mdbSdsnew() mdbMalloc() | At %s:%d",
                      __FILE__, __LINE__);
         goto __finish;
     }
@@ -73,8 +73,8 @@ return:
     成功: SDS
     失败: NULL
 */
-SDS *newempty(void) {
-    return newsds(NULL);
+SDS *mdbSdsNewempty(void) {
+    return mdbSdsnew(NULL);
 }
 
 /*
@@ -87,21 +87,21 @@ return:
     成功: SDS
     失败: NULL
 */
-SDS *sdscat(SDS *sds, char *str) {
+SDS *mdbSdscat(SDS *sds, char *str) {
     int ret = -1;
     size_t newlen = 0;
     int strLen = 0;
     if(sds == NULL || str == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdscat() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbSdscat() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     strLen = strlen(str);
     newlen = sds->len + strLen;
     /* 如果拼接后的字符串的长度小于 1MB, 那么增加同样长度的未使用空间, 如果大于 1MB, 则增加 1MB的空间 */
     if(newlen < MB) {
-        sds = sdsnewlen(sds, newlen << 1);
+        sds = mdbSdsnewlen(sds, newlen << 1);
     } else {
-        sds = sdsnewlen(sds, newlen + MB);
+        sds = mdbSdsnewlen(sds, newlen + MB);
     }
     memcpy(sds->buf + sds->len, str, strLen);
     sds->len = newlen;
@@ -122,21 +122,21 @@ return:
     成功: 目标 SDS
     失败: NULL
 */
-SDS *sdscatsds(SDS *dest, SDS *src) {
+SDS *mdbSdscatsds(SDS *dest, SDS *src) {
     int ret = -1;
     size_t newlen = 0;
     size_t strLen = 0;
     if(dest == NULL || src == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdscatsds() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbSdscatsds() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     strLen = src->len;
     newlen = dest->len + strLen;
     /* 如果拼接后的字符串的长度小于 1MB, 那么增加同样长度的未使用空间, 如果大于 1MB, 则增加 1MB的空间 */
     if(newlen < MB) {
-        dest = sdsnewlen(dest, newlen << 1);
+        dest = mdbSdsnewlen(dest, newlen << 1);
     } else {
-        dest = sdsnewlen(dest, newlen + MB);
+        dest = mdbSdsnewlen(dest, newlen + MB);
     }
     memcpy(dest->buf + dest->len, src->buf, strLen);
     dest->len = newlen;
@@ -157,9 +157,9 @@ return:
     成功: 清空后的SDS
     失败: NULL
 */
-SDS *sdsclear(SDS *sds) {
+SDS *mdbSdsclear(SDS *sds) {
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdsclear() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbSdsclear() | At %s:%d", __FILE__, __LINE__);
         return NULL;
     }
     sds->free += sds->len;
@@ -173,7 +173,7 @@ des:
 param:
     sds: 待释放的SDS
 */
-void sdsfree(SDS *sds) {
+void mdbSdsfree(SDS *sds) {
     mdbFree(sds);
 }
 
@@ -186,9 +186,9 @@ return:
     成功: 空闲块的大小
     失败: -1
 */
-ssize_t sdsavail(SDS *sds) {
+ssize_t mdbSdsavail(SDS *sds) {
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdsavail() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbSdsavail() | At %s:%d", __FILE__, __LINE__);
         return -1;
     }
     return sds->free;
@@ -203,10 +203,29 @@ return:
     成功: 已分配的大小
     失败: -1
 */
-ssize_t sdslen(SDS *sds) {
+ssize_t mdbSdslen(SDS *sds) {
     if(sds == NULL) {
-        mdbLogWrite(LOG_ERROR, "sdslen() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbSdslen() | At %s:%d", __FILE__, __LINE__);
         return -1;
     }
     return sds->len;
+}
+
+/*
+des:
+    比较SDS
+param:
+    a: SDS a
+    b: SDS b
+return:
+    a > b : >0
+    a < b : <0
+    a = b : =0
+*/
+int mdbSdsCmp(SDS *a, SDS *b) {
+    if(a == NULL || b == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbSdsCmp() | At %s:%d", __FILE__, __LINE__);
+        return -1;
+    }
+    return strcmp(a->buf, b->buf);
 }

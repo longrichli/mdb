@@ -33,6 +33,13 @@ typedef struct dict {
 
 /*
 des:
+    BKDR哈希函数
+param:
+    key: 
+*/
+unsigned int mdbBkdrHash(const void *key);
+/*
+des:
     创建一个字典
 param:
     type: 对字典中key 和 value 的相关操作函数 (keyfree , value free 等)

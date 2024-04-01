@@ -18,7 +18,7 @@ return:
     成功: SDS
     失败: NULL
 */
-SDS *newsds(char *str);
+SDS *mdbSdsnew(char *str);
 
 /*
 des:
@@ -27,7 +27,7 @@ return:
     成功: SDS
     失败: NULL
 */
-SDS *newempty(void);
+SDS *mdbSdsNewempty(void);
 
 /*
 des:
@@ -39,7 +39,7 @@ return:
     成功: 分配后的sds
     失败: NULL
 */
-SDS *sdsnewlen(SDS *sds, size_t newlen);
+SDS *mdbSdsnewlen(SDS *sds, size_t newlen);
 
 /*
 des:
@@ -51,7 +51,7 @@ return:
     成功: SDS
     失败: NULL
 */
-SDS *sdscat(SDS *sds, char *str);
+SDS *mdbSdscat(SDS *sds, char *str);
 
 /*
 des:
@@ -63,7 +63,7 @@ return:
     成功: 目标 SDS
     失败: NULL
 */
-SDS *sdscatsds(SDS *dest, SDS *src);
+SDS *mdbSdscatsds(SDS *dest, SDS *src);
 
 /*
 des:
@@ -74,7 +74,7 @@ return:
     成功: 清空后的SDS
     失败: NULL
 */
-SDS *sdsclear(SDS *sds);
+SDS *mdbSdsclear(SDS *sds);
 
 /*
 des:
@@ -82,7 +82,7 @@ des:
 param:
     sds: 待释放的SDS
 */
-void sdsfree(SDS *sds);
+void mdbSdsfree(SDS *sds);
 
 /*
 des:
@@ -93,7 +93,7 @@ return:
     成功: 空闲块的大小
     失败: -1
 */
-ssize_t sdsavail(SDS *sds);
+ssize_t mdbSdsavail(SDS *sds);
 
 /*
 des:
@@ -104,6 +104,19 @@ return:
     成功: 已分配的大小
     失败: -1
 */
-ssize_t sdslen(SDS *sds);
+ssize_t mdbSdslen(SDS *sds);
+
+/*
+des:
+    比较SDS
+param:
+    a: SDS a
+    b: SDS b
+return:
+    a > b : >0
+    a < b : <0
+    a = b : =0
+*/
+int mdbSdsCmp(SDS *a, SDS *b);
 
 #endif /* __MDB_SDS_H__ */
