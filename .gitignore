@@ -54,3 +54,7 @@ dkms.conf
 #custom files
 .vscode/**
 *_test
+src/mdb-server
+src/mdb-cli
+log/*.log
+bin/

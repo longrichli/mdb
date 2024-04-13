@@ -48,21 +48,21 @@ void mdbLogWrite(logLevel level, char *fmt, ...) {
         }
         switch(level) {
             case LOG_DEBUG:
-                fwrite("[DEBUG  ]", sizeof(char), 9, fp);
+                fwrite("DEBUG:  ", sizeof(char), 8, fp);
                 break;
             case LOG_INFO:
                 if(stdOut == 1) fwrite(ANSI_COLOR_GREEN, sizeof(char), 5, fp);
-                fwrite("[INFO   ]", sizeof(char), 9, fp);
+                fwrite("INFO:   ", sizeof(char), 8, fp);
                 if(stdOut == 1) fwrite(ANSI_COLOR_RESET, sizeof(char), 4, fp);
                 break;
             case LOG_WARNING:
                 if(stdOut == 1) fwrite(ANSI_COLOR_YELLOW, sizeof(char), 5, fp);
-                fwrite("[WARNING]", sizeof(char), 9, fp);
+                fwrite("WARNING:", sizeof(char), 8, fp);
                 if(stdOut == 1) fwrite(ANSI_COLOR_RESET, sizeof(char), 4, fp);
                 break;
             case LOG_ERROR:
                 if(stdOut == 1) fwrite(ANSI_COLOR_RED, sizeof(char), 5, fp);
-                fwrite("[ERROR  ]", sizeof(char), 9, fp);
+                fwrite("ERROR:  ", sizeof(char), 8, fp);
                 if(stdOut == 1) fwrite(ANSI_COLOR_RESET, sizeof(char), 4, fp);
                 break; 
         }
@@ -70,7 +70,7 @@ void mdbLogWrite(logLevel level, char *fmt, ...) {
         /* 获取当前时间 */
         getcurrtime(currtime);
         fwrite(currtime, sizeof(char), 19, fp);
-        fwrite("]: ", sizeof(char), 3, fp);
+        fwrite("]# ", sizeof(char), 3, fp);
         va_start(args, fmt);
         vfprintf(fp, fmt, args);
         va_end(args);
