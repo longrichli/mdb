@@ -51,4 +51,31 @@ return:
 */
 int mdbIsObjectRepresentableAsLongLong(mobj *obj, long long *llval);
 
+
+/*
+des:
+    网络写数据
+param:
+    fd: 文件描述符
+    data: 数据
+    len: 数据长度
+return:
+    成功: 写入的长度
+    失败: -1
+*/
+ssize_t mdbWrite(int fd, void *data, size_t len);
+
+/*
+des:
+    网络读数据
+param:
+    fd: 文件描述符
+    buf: 缓冲区
+    len: 读取数据长度
+return:
+    成功: 读出的长度
+    失败: -1
+*/
+ssize_t mdbRead(int fd, void *buf, size_t len);
+
 #endif /* __MDB_UTIL_H__ */

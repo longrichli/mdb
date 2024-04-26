@@ -118,7 +118,7 @@ int mdbIsObjectRepresentableAsLongLong(mobj *obj, long long *llval) {
     }
     if(obj->encoding != MDB_ENCODING_RAW) {
         if(obj->encoding == MDB_ENCODING_INT) {
-            if(llval) *llval = obj->ptr;
+            if(llval) *llval = (long long)obj->ptr;
             ret = 0;
         }
         goto __finish;
@@ -132,3 +132,74 @@ __finish:
     return ret;
 }
 
+/*
+des:
+    网络写数据
+param:
+    fd: 文件描述符
+    data: 数据
+    len: 数据长度
+return:
+    成功: 写入的长度
+    失败: -1
+*/
+ssize_t mdbWrite(int fd, void *data, size_t len) {
+    int ret = -1;
+    size_t wAllLen = 0;
+    while(len > 0) {
+        ssize_t wLen = 0;
+        wLen = write(fd, data, len);
+        if(wLen < 0) {
+            if(errno == EINTR) {
+                continue;
+            }
+            mdbLogWrite(LOG_ERROR, "mdbWrite() write() | At %s:%d", __FILE__, __LINE__);
+            goto __finish;
+        } else if(wLen == 0) {
+            mdbLogWrite(LOG_DEBUG, "mdbWrite() write() | At %s:%d", __FILE__, __LINE__);
+            goto __finish;
+        } else {
+            len -= wLen;
+            wAllLen += wLen;
+        }
+    }
+    ret = 0;
+__finish:
+    return ret == 0 ? wAllLen : ret;
+}
+
+/*
+des:
+    网络读数据
+param:
+    fd: 文件描述符
+    buf: 缓冲区
+    len: 读取数据长度
+return:
+    成功: 读出的长度
+    失败: -1
+*/
+ssize_t mdbRead(int fd, void *buf, size_t len) {
+    int ret = -1;
+    size_t rAllLen = 0;
+    while(len > 0) {
+        ssize_t rLen = 0;
+        rLen = read(fd, buf, len);
+        if(rLen < 0) {
+            if(errno == EINTR) {
+                continue;
+            }
+            mdbLogWrite(LOG_ERROR, "mdbRead() read() | At %s:%d", __FILE__, __LINE__);
+            goto __finish;
+        } else if(rLen == 0) {
+            mdbLogWrite(LOG_DEBUG, "mdbRead() read() | At %s:%d", __FILE__, __LINE__);
+            goto __finish;
+        } else {
+            len -= rLen;
+            rAllLen += rLen;
+        }
+    }
+    ret = 0;
+__finish:
+    return ret == 0 ? rAllLen : ret;
+}
