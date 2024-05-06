@@ -45,7 +45,7 @@ void listPrint(linkedList *list) {
 }
 
 int main(void) {
-    linkedList *list = mdbListCraete(strDup, strFree, strMatch);
+    linkedList *list = mdbListCreate(strDup, strFree, strMatch);
     listNode *tmpNode = NULL;
     char *str1 = strDup("1");
     char *str2 = strDup("2");

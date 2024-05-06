@@ -282,6 +282,52 @@ return:
 */
 int mdbCreateSharedObject(void);
 
+/*
+des:
+    比较对象
+param:
+    v1: 对象1
+    v2: 对象2
+return:
+    v1 == v2: 0
+    v1 < v2 : < 0
+    v1 > v2 : > 0
+*/
+int mdbDictMdbObjCompare(const void *v1, const void *v2);
+
+/*
+des:
+    比较SDS key
+param:
+    key1: key1
+    key2: key2
+return:
+    key1 == key2: 0
+    key1 < key2 : < 0
+    key1 > key2 : > 0
+*/
+int mdbDictSdsKeyCompare(const void *key1, const void *key2);
+
+/*
+des:
+    计算对象的hash值
+param:
+    v: 对象
+return:
+    hash值
+
+*/
+unsigned int mdbHashFun(const void *v);
+/*
+des:
+    释放对象
+param:
+    obj: 对象
+*/
+void mdbDictMdbObjFree(void *obj);
+
+
+
 
 
 #endif /* __MDB_OBJECT_H__ */

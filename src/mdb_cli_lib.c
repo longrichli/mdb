@@ -9,11 +9,11 @@
 static int splitCmd(char *buf, char *cmd) {
     int ret = -1;
     char *subStr = NULL;
-    subStr = strtok(cmd, " \t\n");
+    subStr = strtok(cmd, " \t\r\n");
     while(subStr != NULL) {
         strcat(buf, subStr);
         strcat(buf, "\r\n");
-        subStr = strtok(NULL, " \t\n");
+        subStr = strtok(NULL, " \t\r\n");
     }
     ret = 0;
 __finish:

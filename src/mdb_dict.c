@@ -27,18 +27,22 @@ static dictEntry *dictFetchEntry(dict *d, void *key) {
     int ret = -1;
     size_t tableIdx = 0;
     unsigned int hash = 0;
-    dictEntry *tmpEntry;
+    dictEntry *tmpEntry = NULL;
     if(d == NULL || key == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbDictFetchValue() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     hash = d->type->hashFunction(key);
+    mdbLogWrite(LOG_DEBUG, "hash: %u", hash);
     /* 先在 ht[0] 找 */
     if(d->ht[0].table != NULL && d->ht[0].used > 0) {
+        
         tableIdx = hash & d->ht[0].mask;
         tmpEntry = d->ht[0].table[tableIdx];
+       
         while(tmpEntry != NULL) {
             if(d->type->keyCompare(tmpEntry->key, key) == 0) {
+                
                 /* 找到了 */
                 ret = 0;
                 goto __finish;

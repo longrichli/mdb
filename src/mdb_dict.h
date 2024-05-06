@@ -35,7 +35,9 @@ typedef struct dict {
 des:
     BKDR哈希函数
 param:
-    key: 
+    key: key
+return:
+    hash 值
 */
 unsigned int mdbBkdrHash(const void *key);
 /*

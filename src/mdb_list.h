@@ -1,7 +1,7 @@
 #ifndef __MDB_LIST_H__
 #define __MDB_LIST_H__
 #include <stdlib.h>
-
+#include <sys/types.h>
 
 typedef struct listNode {
     struct listNode *pre;       /* 上一个节点 */
@@ -165,7 +165,7 @@ return:
     成功: 创建的链表
     失败: NULL
 */
-linkedList *mdbListCraete(void *(*dupMethod)(void *), void(*freeMethod)(void *), int(*matchMethod)(void *, void*));
+linkedList *mdbListCreate(void *(*dupMethod)(void *), void(*freeMethod)(void *), int(*matchMethod)(void *, void*));
 
 /*
 des:

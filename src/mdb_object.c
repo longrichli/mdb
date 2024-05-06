@@ -7,10 +7,12 @@
 #include "mdb_object.h"
 #include "mdb_util.h"
 #include <limits.h>
+#include <time.h>
 
 sharedObject gshared;
 
-unsigned int mdbHashFun(mobj *key) {
+unsigned int mdbHashFun(const void *v) {
+    mobj *key = (mobj *)v;
     if(key == NULL || key->type != MDB_STRING) {
         mdbLogWrite(LOG_ERROR, "mdbSetHashFun() | At %s:%d", __FILE__, __LINE__);
         return 0;
@@ -19,7 +21,7 @@ unsigned int mdbHashFun(mobj *key) {
         return mdbBkdrHash(((SDS *)key->ptr)->buf);
     } else if(key->encoding == MDB_ENCODING_INT) {
         char buf[32] = {0};
-        mdbLonglong2Stirng(buf, 32, key->ptr);
+        mdbLonglong2Stirng(buf, 32, (long long)key->ptr);
         return mdbBkdrHash(buf);
     } else {
         mdbLogWrite(LOG_ERROR, "mdbSetHashFun() | At %s:%d", __FILE__, __LINE__);
@@ -27,7 +29,7 @@ unsigned int mdbHashFun(mobj *key) {
     }
 }
 
-void mdbDictMdbObjFree(mobj *obj) {
+void mdbDictMdbObjFree(void *obj) {
     if(obj != NULL) {
         mdbDecrRefCount(obj);
     }
@@ -40,8 +42,10 @@ int mdbDictSdsKeyCompare(const void *key1, const void *key2) {
     return memcmp(key1, key2, l1) == 0;
 }
 
-int mdbDictMdbObjCompare(const mobj *key1, const mobj *key2) {
+int mdbDictMdbObjCompare(const void *v1, const void *v2) {
     int cmp = 0;
+    mobj *key1 = (mobj *)v1;
+    mobj *key2 = (mobj *)v2;
     if(key1 == NULL && key2 == NULL) {
         return 1;
     } else if(key1 == NULL || key2 == NULL) {
@@ -59,12 +63,22 @@ int mdbDictMdbObjCompare(const mobj *key1, const mobj *key2) {
     return cmp;
 }
 
-dictType gDtype = {
+dictType gSetDtype = {
     mdbHashFun,           // hash function
     NULL,                 // keydup
-    mdbDictMdbObjCompare, // valdup
+    NULL,                 // valdup
+    mdbDictMdbObjCompare, // keyCompare
     mdbDictMdbObjFree,    // keyFree
     NULL                  // valFree 由于set没有val, 所以不用释放val
+};
+
+dictType gHashDtype = {
+    mdbHashFun,           // hash function
+    NULL,                 // keydup
+    NULL,                 // valdup
+    mdbDictMdbObjCompare, // keyCompare
+    mdbDictMdbObjFree,    // keyFree
+    mdbDictMdbObjFree     // valFree
 };
 
 /*
@@ -287,7 +301,7 @@ mobj *mdbCreateEmpstrObject(char *ptr) {
     obj->encoding = MDB_ENCODING_EMBSTR;
     obj->refCount = 1;
     obj->lru = time(NULL);
-    sds = obj + sizeof(obj);
+    sds = (SDS *)(obj + sizeof(obj));
     sds->len = strlen(ptr);
     sds->free = 0;
     strcpy(sds->buf, ptr);
@@ -358,7 +372,7 @@ mobj *mdbTryObjectEncoding(mobj *obj) {
     } else {
         obj->encoding = MDB_ENCODING_INT;
         mdbSdsfree(obj->ptr);
-        obj->ptr = lval;
+        obj->ptr = (void *)lval;
     }
     return obj;
 }
@@ -386,7 +400,7 @@ mobj *mdbGetDecodedObject(mobj *obj) {
         ret = 0;
         goto __finish;
     } else if(obj->encoding == MDB_ENCODING_INT) {
-        mdbLonglong2Stirng(buf, 32, obj->ptr);
+        mdbLonglong2Stirng(buf, 32, (long long)obj->ptr);
         dec = mdbCreateStringObject(buf);
         if(dec == NULL) {
             mdbLogWrite(LOG_ERROR, "mdbGetDecodedObject() mdbCreateStringObject() | At %s:%d", __FILE__, __LINE__);
@@ -476,9 +490,9 @@ mobj *mdbCreateListObject(void) {
     linkedList *list = NULL;
     int ret = -1;
     mobj *obj = NULL;
-    list = mdbListCraete(NULL, mdbDecrRefCount, NULL);
+    list = mdbListCreate(NULL, mdbDecrRefCount, NULL);
     if(list == NULL) {
-        mdbLogWrite(LOG_ERROR, "mdbCreateListObject() mdbListCraete() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbCreateListObject() mdbListCreate() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     obj = mdbCreateObject(MDB_LIST, list);
@@ -516,7 +530,7 @@ mobj *mdbCreateSetObject(void) {
     dict *d = NULL;
     int ret = -1;
     mobj *obj = NULL;
-    d = mdbDictCreate(&gDtype);
+    d = mdbDictCreate(&gSetDtype);
     if(d == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbCreateSetObject() mdbDictCreate() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
@@ -572,7 +586,7 @@ mobj *mdbCreateHashObject(void) {
     dict *d = NULL;
     int ret = -1;
     mobj *obj = NULL;
-    d = mdbDictCreate(&gDtype);
+    d = mdbDictCreate(&gHashDtype);
     if(d == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbCreateSetObject() mdbDictCreate() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
@@ -682,7 +696,7 @@ int mdbCompareStringObjects(mobj *a, mobj *b) {
     }
     if(a->encoding == MDB_ENCODING_INT) {
         char buf[32] = {0};
-        mdbLonglong2Stirng(buf, 32, a->ptr);
+        mdbLonglong2Stirng(buf, 32, (long long)a->ptr);
         sdsa = mdbSdsnew(buf);
         if(sdsa == NULL) {
             mdbLogWrite(LOG_ERROR, "mdbCompareStringObjects() mdbSdsnew() | At %s:%d", __FILE__, __LINE__);
@@ -691,7 +705,7 @@ int mdbCompareStringObjects(mobj *a, mobj *b) {
     } 
     if(b->encoding == MDB_ENCODING_INT) {
         char buf[32] = {0};
-        mdbLonglong2Stirng(buf, 32, b->ptr);
+        mdbLonglong2Stirng(buf, 32, (long long)b->ptr);
         sdsb = mdbSdsnew(buf);
         if(sdsb == NULL) {
             mdbLogWrite(LOG_ERROR, "mdbCompareStringObjects() mdbSdsnew() | At %s:%d", __FILE__, __LINE__);

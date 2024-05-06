@@ -223,15 +223,15 @@ return:
     成功: 创建的链表
     失败: NULL
 */
-linkedList *mdbListCraete(void *(*dupMethod)(void *), void(*freeMethod)(void *), int(*matchMethod)(void *, void*)) {
+linkedList *mdbListCreate(void *(*dupMethod)(void *), void(*freeMethod)(void *), int(*matchMethod)(void *, void*)) {
     int ret = -1;
     linkedList *list = NULL;
-    if(dupMethod == NULL || freeMethod == NULL || matchMethod == NULL) {
-        mdbLogWrite(LOG_ERROR, "mdbListCraete() | At %s:%d", __FILE__, __LINE__);
+    if(freeMethod == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbListCreate() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     if((list = mdbMalloc(sizeof(linkedList))) == NULL) {
-        mdbLogWrite(LOG_ERROR, "mdbListCraete() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbListCreate() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     list->dup = dupMethod;
@@ -495,8 +495,8 @@ linkedList *mdbListDup(linkedList *list) {
         mdbLogWrite(LOG_ERROR, "mdbListDup() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    if((listDup = mdbListCraete(list->dup, list->free, list->match)) == NULL) {
-        mdbLogWrite(LOG_ERROR, "mdbListDup() mdbListCraete() | At %s:%d", __FILE__, __LINE__);
+    if((listDup = mdbListCreate(list->dup, list->free, list->match)) == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbListDup() mdbListCreate() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     pNode = list->head;
