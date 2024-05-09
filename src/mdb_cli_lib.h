@@ -1,6 +1,6 @@
 #ifndef __MDB_CLI_LIB__
 #define __MDB_CLI_LIB__
-
+#include <stdint.h>
 /*
 des
     连接mdb服务器
@@ -12,7 +12,7 @@ int connectToServer(const char *host, int port);
 
 int sendCommand(int fd, char *cmd);
 
-int readResault(int fd, char **result);
+int readResault(int fd, char **result, uint8_t* code);
 
 
 

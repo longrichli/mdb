@@ -177,7 +177,7 @@ return:
     成功: 添加完之后的链表
     失败: NULL
 */
-linkedList *mdbAddNodeHead(linkedList *list, void *val);
+linkedList *mdbListAddNodeHead(linkedList *list, void *val);
 
 /*
 des:
@@ -189,7 +189,7 @@ return:
     成功: 添加完之后的链表
     失败: NULL
 */
-linkedList *mdbAddNodeTail(linkedList *list, void *val);
+linkedList *mdbListAddNodeTail(linkedList *list, void *val);
 
 /*
 des:

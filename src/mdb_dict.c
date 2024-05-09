@@ -262,6 +262,7 @@ int mdbDictReplace(dict *d, void *key, void *val) {
     }
     // 先找一下, 如果字典中存在了这个key, 就把旧的换成新的值
     if((tmpEntry = dictFetchEntry(d, key)) != NULL) {
+        mdbLogWrite(LOG_DEBUG, "mdbDictReplace() replace | At %s:%d", __FILE__, __LINE__);
         // 存在这个key, 进行替换
         if(d->type->keyFree)
             d->type->keyFree(tmpEntry->key);

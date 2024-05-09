@@ -6,6 +6,11 @@
 #include "mdb_object.h"
 #include "mdb_common.h"
 
+#define MDB_REP_OK (0)
+#define MDB_REP_ERROR (-1)
+#define MDB_REP_STRING (1)
+#define MDB_REP_ARRAY (2)
+
 typedef struct mdbDb {
     dict *dict;
     size_t keynum;
@@ -40,7 +45,14 @@ typedef struct mdbCommand {
     cmdProc *proc;
 } mdbCommand;
 
+int mdbSendReply(int fd, char *reply , uint8_t code);
+
 // 通用命令
+
+// SELECT：切换到指定的数据库。
+// 例如：SELECT db_index
+void mdbCommandSelect(mdbClient *c);
+
 // KEYS：用于查找满足指定模式的键。
 // 例如：KEYS *、KEYS user:*
 void mdbCommandKeys(mdbClient *c);

@@ -67,6 +67,10 @@ int sendCommand(int fd, char *cmd) {
     }
     // 写入长度
     cmdLen = strlen(buf);
+    if(cmdLen > BIGBUFFER_SIZE) {
+        mdbLogWrite(LOG_ERROR, "sendCommand() cmdLen > BIGBUFFER_SIZE | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
     wCmdLen = htons(cmdLen);
     if(mdbWrite(fd, &wCmdLen, sizeof(uint16_t)) != sizeof(uint16_t)) {
         mdbLogWrite(LOG_ERROR, "sendCommand() mdbWrite() | At %s:%d", __FILE__, __LINE__);
@@ -83,13 +87,17 @@ __finish:
 }
 
 
-int readResault(int fd, char **result) {
+int readResault(int fd, char **result, uint8_t *code) {
     int ret = -1;
     uint16_t resultLen = 0, wCmdLen = 0;
-    
     char *subStr = NULL;
-    if(fd < 0 || result == NULL) {
+    if(fd < 0 || result == NULL || code == NULL) {
         mdbLogWrite(LOG_ERROR, "readResault() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    // 读取类型
+    if(mdbRead(fd, code, sizeof(uint8_t)) != sizeof(uint8_t)) {
+        mdbLogWrite(LOG_ERROR, "readResault() mdbRead() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     // 读取长度

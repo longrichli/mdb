@@ -255,7 +255,7 @@ return:
     成功: 添加完之后的链表
     失败: NULL
 */
-linkedList *mdbAddNodeHead(linkedList *list, void *val) {
+linkedList *mdbListAddNodeHead(linkedList *list, void *val) {
     int ret = -1;
     listNode *node = NULL;
     if(list == NULL) {
@@ -295,7 +295,7 @@ return:
     成功: 添加完之后的链表
     失败: NULL
 */
-linkedList *mdbAddNodeTail(linkedList *list, void *val) {
+linkedList *mdbListAddNodeTail(linkedList *list, void *val) {
     int ret = -1;
     listNode *node = NULL;
     if(list == NULL) {
@@ -502,7 +502,7 @@ linkedList *mdbListDup(linkedList *list) {
     pNode = list->head;
     while(pNode != NULL) {
         void *val = list->dup(pNode->value);
-        mdbAddNodeTail(listDup, val);
+        mdbListAddNodeTail(listDup, val);
         pNode = pNode->next;
     }
     ret = 0;

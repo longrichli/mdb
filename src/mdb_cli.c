@@ -8,13 +8,23 @@
 #define MAX_COMMAND_SIZE 8192
 
 
-
+int isBlack(char *cmd) {
+    int i = 0;
+    while(cmd[i] != '\0') {
+        if (cmd[i] != ' ' && cmd[i] != '\n' && cmd[i] != '\r' && cmd[i] != '\t') {
+            return 0;
+        }
+        i++;
+    }
+    return 1;
+}
 
 int main(int argc, char **argv) {
     int port = DEFAULT_PORT;
     char *host = DEFAULT_HOST;
     char prefix[256] = {0};
     int dbIndex = 0;
+    uint8_t code = -1;
     if(argc > 1) {
         host = argv[1];
     }
@@ -33,13 +43,32 @@ int main(int argc, char **argv) {
         char cmd[MAX_COMMAND_SIZE] = {0};
         char *res = NULL;
         fgets(cmd, sizeof(cmd), stdin);
+        if(isBlack(cmd)) {
+            continue;
+        }
+        // 过滤前面的不可见字符
+        int i = 0;
+        while(cmd[i] != '\0') {
+            if (cmd[i] == ' ' || cmd[i] == '\n' || cmd[i] == '\r' || cmd[i] == '\t') {
+                i++;
+            } else {
+                break;
+            }
+        }
         // 发送命令到服务器
-        sendCommand(sock, cmd);
+        sendCommand(sock, cmd + i);
         // 读取服务器的响应
-        readResault(sock, &res);
+        readResault(sock, &res, &code);
+        
         printf("%s", res);
         mdbFree(res);
-        if (strcmp(cmd, "exit") == 0) {
+        if(strncpy(cmd + i, "select", 6) == 0 && code == 0) {
+            int index = atoi(cmd + i + 6);
+            if (index >= 0 && index < 16) {
+                dbIndex = index;
+            }
+        }
+        if (strcmp(cmd + i, "exit") == 0) {
             break;
         }
     }

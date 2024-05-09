@@ -7,6 +7,7 @@
 #include <getopt.h>
 #include <arpa/inet.h>
 #include "mdb_config.h"
+#include "mdb_util.h"
 #define BANNER_FILEPATH "banner.txt"
 #define DEFAULT_PORT (8181)
 #define DEFAULT_IP "127.0.0.1"
@@ -19,6 +20,44 @@ mdbServer gServer;
 
 
 // 通用命令
+
+// SELECT：切换到指定的数据库。
+// 例如：SELECT db_index
+void mdbCommandSelect(mdbClient *c) {
+    int fd = c->fd;
+    long dbIndex = -1;
+    if(c->argc != 2) {
+        // 返回错误信息
+        if(mdbSendReply(fd, "ERR wrong number of arguments\r\n", MDB_REP_ERROR) == -1) {
+            mdbLogWrite(LOG_ERROR, "mdbCommandSelect() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            return;
+        }
+        return;
+    }
+    if(mdbIsStringRepresentableAsLong((SDS *)(c->argv[1]->ptr), &dbIndex) < 0) {
+        // 返回错误信息
+        if(mdbSendReply(fd, "ERR invalid db index\r\n", MDB_REP_ERROR) < 0) {
+            mdbLogWrite(LOG_ERROR, "mdbCommandSelect() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            return;
+        }
+        return;
+    }
+    if(dbIndex < 0 || dbIndex >= gServer.dbnum) {
+        // 返回错误信息
+        if(mdbSendReply(fd, "ERR invalid db index\r\n", MDB_REP_ERROR) < 0) {
+            mdbLogWrite(LOG_ERROR, "mdbCommandSelect() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            return;
+        }
+        return;
+    }
+    c->db = &gServer.db[dbIndex];
+    // 回复OK
+    if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
+        mdbLogWrite(LOG_ERROR, "mdbCommandSelect() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        return;
+    }
+}
+
 // KEYS：用于查找满足指定模式的键。
 // 例如：KEYS *、KEYS user:*
 void mdbCommandKeys(mdbClient *c) {
@@ -125,6 +164,8 @@ void initCommandDict() {
         return;
     }
     //添加通用命令
+    mdbCommand *select = mdbCreateCmd(mdbSdsnew("select"), mdbCommandSelect);
+    mdbDictAdd(gServer.mdbCommands, select->name, select);
     mdbCommand *keys = mdbCreateCmd(mdbSdsnew("keys"), mdbCommandKeys);
     mdbDictAdd(gServer.mdbCommands, keys->name, keys);
     mdbCommand *del = mdbCreateCmd(mdbSdsnew("del"), mdbCommandSet);
@@ -459,42 +500,78 @@ __finish:
     return ret;
 }
 
+int mdbSendReply(int fd, char *reply , uint8_t code) {
+    int ret = -1;
+    uint16_t dataLen = strlen(reply);
+    dataLen = htons(dataLen);
+    if(mdbWrite(fd, &code, sizeof(code)) <= 0) {
+        mdbLogWrite(LOG_ERROR, "mdbSendReply() | write() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    if(mdbWrite(fd, &dataLen, sizeof(dataLen)) <= 0) {
+        mdbLogWrite(LOG_ERROR, "mdbSendReply() | write() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    if(mdbWrite(fd, reply, strlen(reply)) <= 0) {
+        mdbLogWrite(LOG_ERROR, "mdbSendReply() | write() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    ret = 0;
+__finish:
+    return ret;
+}
+
 int mdbParseCmd(mdbClient *client, int fd) {
     int ret = -1;
     uint8_t buf[BIGBUFFER_SIZE] = {0};
     uint16_t dataLen = 0;
-    int start = 0, end = 0;
-    if(read(fd, &dataLen, sizeof(dataLen)) <= 0) {
+    char *token = NULL;
+    int argc = 0;
+    if(mdbRead(fd, &dataLen, sizeof(dataLen)) <= 0) {
         mdbLogWrite(LOG_ERROR, "mdbParseCmd() | read() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     dataLen = ntohs(dataLen);
-    if(read(fd, buf, dataLen) <= 0) {
+    if(mdbRead(fd, buf, dataLen) <= 0) {
         mdbLogWrite(LOG_ERROR, "mdbParseCmd() | read() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     buf[dataLen] = '\0';
-    client->querybuf = mdbSdsnewlen(buf, dataLen + 1);
+    client->querybuf = mdbSdsnew(buf);
     if(client->querybuf == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbParseCmd() | mdbSdsnewlen() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
+
+    
     for(int i = 0; i < dataLen; i++) {
-        // if(buf[i] == '\r' && buf[i + 1] == '\n') {
-        //     end = i;
-        //     client->argv[client->argc] = mdbCreateObject(MDB_STRING, mdbSdsnewlen(buf + start, end - start));
-        //     if(client->argv[client->argc] == NULL) {
-        //         mdbLogWrite(LOG_ERROR, "mdbParseCmd() | mdbCreateObject() | At %s:%d", __FILE__, __LINE__);
-        //         goto __finish;
-        //     }
-        //     client->argc++;
-        //     start = i + 1;
-        // }
+        if(buf[i] == '\r' && buf[i + 1] == '\n') {
+            argc++;
+        }
+    }
+    client->argv = mdbMalloc(sizeof(mobj *) * argc);
+    if(client->argv == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbParseCmd() | mdbMalloc() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    token = buf;
+    client->argc = 0;
+    for(int i = 0; i < dataLen; i++) {
+        if(buf[i] == '\r' && buf[i + 1] == '\n') {
+            buf[i] = '\0';
+            buf[i + 1] = '\0';
+            client->argv[client->argc++] = mdbCreateStringObject(token);
+            token = buf + i + 2;
+        }
     }
     // 通过命令寻找命令处理函数
     mdbCommand *cmd = mdbDictFetchValue(gServer.mdbCommands, client->argv[0]->ptr);
     if(cmd == NULL) {
-        // 回复错误, 没有找到命令
+        // 回复错误, 不知道的命令
+        if(mdbSendReply(fd, "ERR: Unknown command\r\n", MDB_REP_ERROR) < 0) {
+            mdbLogWrite(LOG_ERROR, "mdbParseCmd() | mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            goto __finish;
+        }
 
     } else {
         // 执行命令
@@ -502,6 +579,16 @@ int mdbParseCmd(mdbClient *client, int fd) {
     }
     ret = 0;
 __finish:
+    for(int i = 0; i < client->argc; i++) {
+        mdbDecrRefCount(client->argv[i]);
+    }
+    mdbFree(client->argv);
+    mdbSdsfree(client->querybuf);
+    mdbSdsfree(client->replybuf);
+    client->argc = 0;
+    client->argv = NULL;
+    client->querybuf = NULL;
+    client->replybuf = NULL;
     return ret;
 }
 /*
@@ -518,6 +605,13 @@ int clientFileEventProc(mdbEventLoop *eventLoop, int fd, void *clientData, int m
     mdbClient *client = (mdbClient *)clientData;
     if(client == NULL) {
         goto __finish;
+    }
+    // 对客户端进行初始化
+    if(client->fd == -1) {
+        client->fd = fd;
+        client->querybuf = NULL;
+        client->argc = 0;
+        client->argv = NULL;
     }
     // 解析命令
     if(mdbParseCmd(client, fd) < 0) {
