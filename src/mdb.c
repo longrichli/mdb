@@ -168,7 +168,7 @@ void initCommandDict() {
     mdbDictAdd(gServer.mdbCommands, select->name, select);
     mdbCommand *keys = mdbCreateCmd(mdbSdsnew("keys"), mdbCommandKeys);
     mdbDictAdd(gServer.mdbCommands, keys->name, keys);
-    mdbCommand *del = mdbCreateCmd(mdbSdsnew("del"), mdbCommandSet);
+    mdbCommand *del = mdbCreateCmd(mdbSdsnew("del"), mdbCommandDel);
     mdbDictAdd(gServer.mdbCommands, del->name, del);
     mdbCommand *exists = mdbCreateCmd(mdbSdsnew("exists"), mdbCommandExists);
     mdbDictAdd(gServer.mdbCommands, exists->name, exists);

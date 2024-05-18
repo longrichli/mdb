@@ -391,7 +391,14 @@ mobj *mdbGetDecodedObject(mobj *obj) {
     mobj *dec = NULL;
     char buf[32] = {0};
     if(obj == NULL || obj->type != MDB_STRING) {
+        mdbLogWrite(LOG_DEBUG, obj == NULL ? "obj is NULL" : "obj is not NULL");
+        if(obj != NULL)
+        mdbLogWrite(LOG_DEBUG, obj->type == MDB_STRING ? "obj is string" : "obj is not string");
         mdbLogWrite(LOG_ERROR, "mdbGetDecodedObject() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_DEBUG, "obj->encoding : %d", obj->encoding);
+        mdbLogWrite(LOG_DEBUG, "obj->type : %d", obj->type);
+        mdbLogWrite(LOG_DEBUG, "obj->ptr : %s", obj->ptr == NULL ? "NULL" : "NOT NULL");
+        mdbLogWrite(LOG_DEBUG, "obj->refCount : %d", obj->refCount);
         goto __finish;
     }
     if(obj->encoding == MDB_ENCODING_RAW) {

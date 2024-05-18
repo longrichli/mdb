@@ -10,6 +10,7 @@
 #define MDB_REP_ERROR (-1)
 #define MDB_REP_STRING (1)
 #define MDB_REP_ARRAY (2)
+#define MDB_REP_NIL (3)
 
 typedef struct mdbDb {
     dict *dict;

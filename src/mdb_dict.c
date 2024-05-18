@@ -298,8 +298,9 @@ void *mdbDictFetchValue(dict *d, void *key) {
         mdbLogWrite(LOG_ERROR, "mdbDictFetchValue() | At %s:%d", __FILE__, __LINE__);
         return NULL;
     }
-    entry = dictFetchEntry(d, key);
     dictRehash(d);
+    entry = dictFetchEntry(d, key);
+    
     return entry == NULL ? NULL : entry->val;
 }
 

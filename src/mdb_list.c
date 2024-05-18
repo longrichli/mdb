@@ -188,7 +188,7 @@ return:
     失败: NULL
 */
 listNode *mdbListNextNode(listNode *node) {
-    if(node != NULL) {
+    if(node == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbListNextNode() | At %s:%d", __FILE__, __LINE__);
         return NULL;
     }

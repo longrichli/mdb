@@ -15,4 +15,6 @@
 #define BUFFER_SIZE (4096)
 #define BIGBUFFER_SIZE (8192)
 
+#define TEST
+
 #endif /* __MDB_COMMON_H__ */

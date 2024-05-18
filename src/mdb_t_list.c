@@ -1,39 +1,502 @@
 #include "mdb.h"
+#include "mdb_list.h"
+#include "mdb_sds.h"
+#include "mdb_util.h"
 
 // 列表相关命令
 // LPUSH	添加元素到列表的表头。
 // 例如：LPUSH key value1 value2
 void mdbCommandLpush(mdbClient *c) {
+    int fd = c->fd;
+    if(c->argc < 3) {
+        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'lpush' command\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 根据key获取列表对象
+    mobj *listObj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(listObj == NULL) {
+        // 不存在则创建一个新的列表对象
+        listObj = mdbCreateListObject();
+        if(listObj == NULL) {
+            // 创建失败
+            if(mdbSendReply(fd, "ERR: create list object failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandLpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            }
+            return;
+        }
+        // 添加到数据库字典
+        if(mdbDictAdd(c->db->dict, c->argv[1], listObj) < 0) {
+            // 添加失败
+            if(mdbSendReply(fd, "ERR: add list object to dict failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandLpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            }
+            return;
+        }
+    }
+    // 从列表对象中获取列表
+    linkedList *l = listObj->ptr;
+    for(int i = 2; i < c->argc; i++) {
+        // 创建一个新的字符串对象
+        mobj *obj = mdbDupStringObject(c->argv[i]);
+        if(obj == NULL) {
+            // 创建失败
+            if(mdbSendReply(fd, "ERR: create string object failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandLpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            }
+            return;
+        }
 
+
+#ifdef TEST
+    // 看看obj的值
+    mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
+    mdbLogWrite(LOG_DEBUG, "obj str: %s", ((SDS *)(obj->ptr))->buf);
+    mdbLogWrite(LOG_DEBUG, "obj len: %d", ((SDS *)(obj->ptr))->len);
+#endif
+        // 添加到列表
+        if(mdbListAddNodeHead(l, obj) == NULL) {
+            // 添加失败
+            if(mdbSendReply(fd, "ERR: add node to list failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandLpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            }
+            return;
+        }
+    }
+#ifdef TEST
+    // 遍历列表，看添加进去了没
+    listNode *node = mdbListFirst(l);
+    while(node != NULL) {
+        mobj *obj = node->value;
+        mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
+        mdbLogWrite(LOG_DEBUG, "obj str: %s", ((SDS *)(obj->ptr))->buf);
+        mdbLogWrite(LOG_DEBUG, "obj len: %d", ((SDS *)(obj->ptr))->len);
+        node = mdbListNextNode(node);
+    }
+#endif
+    // 回复客户端OK
+    if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
+        // 发送失败
+        mdbLogWrite(LOG_ERROR, "mdbCommandLpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+    }
 }
 // RPUSH	添加元素到列表的表尾。
 // 例如：RPUSH key value1 value2
 void mdbCommandRpush(mdbClient *c) {
-
+    int fd = c->fd;
+    if(c->argc < 3) {
+        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'rpush' command\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 根据key获取列表对象
+    mobj *listObj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(listObj == NULL) {
+        // 不存在则创建一个新的列表对象
+        listObj = mdbCreateListObject();
+        if(listObj == NULL) {
+            // 创建失败
+            if(mdbSendReply(fd, "ERR: create list object failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            }
+            return;
+        }
+        // 添加到数据库字典
+        if(mdbDictAdd(c->db->dict, c->argv[1], listObj) < 0) {
+            // 添加失败
+            if(mdbSendReply(fd, "ERR: add list object to dict failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            }
+            return;
+        }
+    }
+    // 从列表对象中获取列表
+    linkedList *l = listObj->ptr;
+    for(int i = 2; i < c->argc; i++) {
+        // 创建一个新的字符串对象
+        mobj *obj = mdbDupStringObject(c->argv[i]);
+        if(obj == NULL) {
+            // 创建失败
+            if(mdbSendReply(fd, "ERR: create string object failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            }
+            return;
+        }
+        // 添加到列表
+        if(mdbListAddNodeTail(l, obj) == NULL) {
+            // 添加失败
+            if(mdbSendReply(fd, "ERR: add node to list failed\r\n", MDB_REP_ERROR) < 0) {
+                // 发送失败
+                mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            }
+            return;
+        }
+    }
+#ifdef TEST
+    // 遍历列表，看添加进去了没
+    listNode *node = mdbListFirst(l);
+    while(node != NULL) {
+        mobj *obj = node->value;
+        mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
+        mdbLogWrite(LOG_DEBUG, "obj str: %s", ((SDS *)(obj->ptr))->buf);
+        mdbLogWrite(LOG_DEBUG, "obj len: %d", ((SDS *)(obj->ptr))->len);
+        node = mdbListNextNode(node);
+    }
+#endif
+    // 回复客户端OK
+    if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
+        // 发送失败
+        mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+    }
 }
 // LPOP	弹出列表的表头节点。
 // 例如：LPOP key
 void mdbCommandLpop(mdbClient *c) {
+    int fd = c->fd;
+    if(c->argc != 2) {
+        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'lpop' command\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 根据key获取列表对象
+    mobj *listObj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(listObj == NULL) {
+        mdbLogWrite(LOG_WARNING, "mdbCommandLpop() key not exists | At %s:%d", __FILE__, __LINE__);
+        // 不存在则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 从列表对象中获取列表
+    linkedList *l = listObj->ptr;
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLpop() list length: %d", l->len);
+    // 弹出表头节点
+    listNode *node = mdbListFirst(l);
+    if(node == NULL || l->len == 0) {
+        
+        // mdbDecrRefCount(listObj);
+        // 为空则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 获取节点的字符串对象
+    mobj *obj = node->value;
+    mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
+    // dup一个新的字符串对象
+    mobj *newObj = mdbDupStringObject(obj);
+    mdbLogWrite(LOG_DEBUG, "newObj: %s", newObj == NULL ? "NULL": "NOT NULL");
 
+    if(newObj == NULL) {
+        // 创建失败
+        if(mdbSendReply(fd, "ERR: create string object failed\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    mdbLogWrite(LOG_DEBUG, "newobj str: %s", ((SDS *)(newObj->ptr))->buf);
+    mdbLogWrite(LOG_DEBUG, "newobj len: %d", ((SDS *)(newObj->ptr))->len);
+    // 添加\r\n
+    newObj->ptr = mdbSdscat((SDS *)newObj->ptr, "\r\n");
+    mdbLogWrite(LOG_DEBUG, "newobj str: %s", ((SDS *)(newObj->ptr))->buf);
+    // 回复客户端字符串对象
+    if(mdbSendReply(fd, ((SDS *)(newObj->ptr))->buf, MDB_REP_STRING) < 0) {
+        // 发送失败
+        mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+    }
+    // 释放新的字符串对象
+    mdbDecrRefCount(newObj);
+    // 释放节点
+    mdbListDelNode(l, node);
+#ifdef TEST
+    // 看看链表头是否为空
+    node = mdbListFirst(l);
+    if(node == NULL) {
+        mdbLogWrite(LOG_DEBUG, "mdbCommandLpop() list is empty | At %s:%d", __FILE__, __LINE__);
+    }
+#endif
 }
 // RPOP	弹出列表的表尾节点。
 // 例如：RPOP key
 void mdbCommandRpop(mdbClient *c) {
+    int fd = c->fd;
+    if(c->argc != 2) {
+        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'lpop' command\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 根据key获取列表对象
+    mobj *listObj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(listObj == NULL) {
+        mdbLogWrite(LOG_WARNING, "mdbCommandLpop() key not exists | At %s:%d", __FILE__, __LINE__);
+        // 不存在则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 从列表对象中获取列表
+    linkedList *l = listObj->ptr;
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLpop() list length: %d", l->len);
+    // 弹出表尾节点
+    listNode *node = mdbListLast(l);
+    if(node == NULL || l->len == 0) {
+        
+        // mdbDecrRefCount(listObj);
+        // 为空则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 获取节点的字符串对象
+    mobj *obj = node->value;
+    mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
+    // dup一个新的字符串对象
+    mobj *newObj = mdbDupStringObject(obj);
+    mdbLogWrite(LOG_DEBUG, "newObj: %s", newObj == NULL ? "NULL": "NOT NULL");
 
+    if(newObj == NULL) {
+        // 创建失败
+        if(mdbSendReply(fd, "ERR: create string object failed\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    mdbLogWrite(LOG_DEBUG, "newobj str: %s", ((SDS *)(newObj->ptr))->buf);
+    mdbLogWrite(LOG_DEBUG, "newobj len: %d", ((SDS *)(newObj->ptr))->len);
+    // 添加\r\n
+    newObj->ptr = mdbSdscat((SDS *)newObj->ptr, "\r\n");
+    mdbLogWrite(LOG_DEBUG, "newobj str: %s", ((SDS *)(newObj->ptr))->buf);
+    // 回复客户端字符串对象
+    if(mdbSendReply(fd, ((SDS *)(newObj->ptr))->buf, MDB_REP_STRING) < 0) {
+        // 发送失败
+        mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+    }
+    // 释放新的字符串对象
+    mdbDecrRefCount(newObj);
+    // 释放节点
+    mdbListDelNode(l, node);
+#ifdef TEST
+    // 看看链表头是否为空
+    node = mdbListFirst(l);
+    if(node == NULL) {
+        mdbLogWrite(LOG_DEBUG, "mdbCommandLpop() list is empty | At %s:%d", __FILE__, __LINE__);
+    }
+#endif
 }
 // LINDEX	返回列表中指定索引的节点。
 // 例如：LINDEX key index
 void mdbCommandLindex(mdbClient *c) {
-
+    int fd = c->fd;
+    if(c->argc != 3) {
+        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'lindex' command\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLindex() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 根据key获取列表对象
+    mobj *listObj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(listObj == NULL) {
+        mdbLogWrite(LOG_WARNING, "mdbCommandLindex() key not exists | At %s:%d", __FILE__, __LINE__);
+        // 不存在则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLindex() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 从列表对象中获取列表
+    linkedList *l = listObj->ptr;
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLindex() list length: %d", l->len);
+    // 获取索引
+    long index = 0;
+    if(mdbIsStringRepresentableAsLong((SDS *)(c->argv[2]->ptr), &index) < 0) {
+        // 转换失败
+        if(mdbSendReply(fd, "ERR: invalid index\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLindex() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLindex() index: %ld", index);
+    // 获取节点
+    listNode *node = mdbListIndex(l, index);
+    if(node == NULL) {
+        // 为空则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLindex() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 获取节点的字符串对象
+    mobj *obj = node->value;
+    mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
+    // dup一个新的字符串对象
+    mobj *newObj = mdbDupStringObject(obj);
+    mdbLogWrite(LOG_DEBUG, "newObj: %s", newObj == NULL ? "NULL": "NOT NULL");
+    // 添加\r\n
+    newObj->ptr = mdbSdscat((SDS *)newObj->ptr, "\r\n");
+    mdbLogWrite(LOG_DEBUG, "newobj str: %s", ((SDS *)(newObj->ptr))->buf);
+    // 回复客户端字符串对象
+    if(mdbSendReply(fd, ((SDS *)(newObj->ptr))->buf, MDB_REP_STRING) < 0) {
+        // 发送失败
+        mdbLogWrite(LOG_ERROR, "mdbCommandLindex() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+    }
+    // 释放新的字符串对象
+    mdbDecrRefCount(newObj);
 }
 // LLEN	返回列表的长度。
 // 例如：LLEN key
 void mdbCommandLlen(mdbClient *c) {
-
+    int fd = c->fd;
+    if(c->argc != 2) {
+        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'llen' command\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLlen() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 根据key获取列表对象
+    mobj *listObj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(listObj == NULL) {
+        mdbLogWrite(LOG_WARNING, "mdbCommandLlen() key not exists | At %s:%d", __FILE__, __LINE__);
+        // 不存在则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLlen() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 从列表对象中获取列表
+    linkedList *l = listObj->ptr;
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLlen() list length: %d", l->len);
+    // 回复客户端列表长度
+    char buf[32];
+    int len = sprintf(buf, "%d\r\n", l->len);
+    if(mdbSendReply(fd, buf, len) < 0) {
+        // 发送失败
+        mdbLogWrite(LOG_ERROR, "mdbCommandLlen() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+    }
 }
 // LINSERT	在列表中指定元素的前面或后面添加新元素，如果列表中不存在指定元素，列表保持不变。
 // 例如：LINSERT key BEFORE pivot value
 void mdbCommandLinsert(mdbClient *c) {
+    int fd = c->fd;
+    if(c->argc != 5) {
+        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'linsert' command\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 根据key获取列表对象
+    mobj *listObj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(listObj == NULL) {
+        mdbLogWrite(LOG_WARNING, "mdbCommandLinsert() key not exists | At %s:%d", __FILE__, __LINE__);
+        // 不存在则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 从列表对象中获取列表
+    linkedList *l = listObj->ptr;
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLinsert() list length: %d", l->len);
+    // 获取pivot
+    mobj *pivotObj = mdbDupStringObject(c->argv[3]);
+    if(pivotObj == NULL) {
+        // 创建失败
+        if(mdbSendReply(fd, "ERR: create string object failed\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 获取value
+    mobj *valueObj = mdbDupStringObject(c->argv[4]);
+    if(valueObj == NULL) {
+        // 创建失败
+        if(mdbSendReply(fd, "ERR: create string object failed\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 获取方向
+    int after = 0;
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLinsert() direction: %s", c->argv[2]->ptr);
+    if(strcasecmp(c->argv[2]->ptr, "before") == 0) {
+        after = 0;
+    } else if(strcasecmp(c->argv[2]->ptr, "after") == 0) {
+        after = 1;
+    } else {
+        // 方向错误
+        if(mdbSendReply(fd, "ERR: invalid direction\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLinsert() pivot: %s", ((SDS *)(pivotObj->ptr))->buf);
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLinsert() value: %s", ((SDS *)(valueObj->ptr))->buf);
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLinsert() after: %d", after);
+    // 获取节点
+    listNode *node = mdbListSearchKey(l, pivotObj);
+    if(node == NULL) {
+        // 为空则回复客户端nil
+        if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 添加到节点前或后
+    l = mdbListInsertNode(l, node, valueObj, after);
+    if(l == NULL) {
+        // 添加失败
+        if(mdbSendReply(fd, "ERR: insert node to list failed\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    
+    }
+    // 发送ok
+    if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
+        // 发送失败
+        mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+    }
+    // 释放内存
+    mdbDecrRefCount(pivotObj);
+    mdbDecrRefCount(valueObj);
+    
 
 }
 // LREM	删除列表中指定的节点。
