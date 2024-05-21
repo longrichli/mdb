@@ -171,7 +171,7 @@ return:
     失败: NULL
 */
 listNode *mdbListPrevNode(listNode *node) {
-    if(node != NULL) {
+    if(node == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbListPrevNode() | At %s:%d", __FILE__, __LINE__);
         return NULL;
     }
@@ -398,7 +398,7 @@ listNode *mdbListSearchKey(linkedList *list, void *val) {
     }
     pNode = list->head;
     while(pNode != NULL) {
-        if(list->match(pNode->value, val)) {
+        if(list->match(pNode->value, val) == 0) {
             return pNode;
         }
         pNode = pNode->next;
@@ -457,8 +457,8 @@ linkedList *mdbListDelNode(linkedList *list, listNode *node) {
         goto __finish;
     }
     if(node == list->head && node == list->tail) {
-        list->head == NULL;
-        list->tail == NULL;
+        list->head = NULL;
+        list->tail = NULL;
     } else if(node == list->tail) {
         list->tail = node->pre;
         node->pre->next = NULL;
@@ -530,4 +530,48 @@ void mdbListFree(linkedList *list) {
         pNode = tmpNode;
     }
     mdbFree(list);
+}
+
+/*
+des:
+    修剪链表
+param:
+    l: 要修剪的链表
+    start: 修剪的起始位置
+    end: 修剪的结束位置
+return:
+    成功: 修剪后的链表
+    失败: NULL
+*/
+linkedList *mdbListTrim(linkedList *l, int start, int end) {
+    int ret = -1;
+    listNode *pNode = NULL;
+    int len = 0;
+    if(l == NULL || start < 0 || end < 0 || start > end) {
+        mdbLogWrite(LOG_ERROR, "mdbListTrim() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    len = l->len;
+    if(start >= len) {
+        start = len;
+    }
+    if(end >= len) {
+        end = len;
+    }
+    pNode = l->head;
+    int i = 0;
+    while(pNode != NULL) {
+        if(i >= start && i <= end) {
+            pNode = pNode->next;
+            i++;
+            continue;
+        }
+        listNode *tmpNode = pNode->next;
+        mdbListDelNode(l, pNode);
+        pNode = tmpNode;
+        i++;
+    }
+    ret = 0;
+__finish:
+    return ret == 0 ? l : NULL;
 }

@@ -34,29 +34,58 @@ void mdbDictMdbObjFree(void *obj) {
         mdbDecrRefCount(obj);
     }
 }
-int mdbDictSdsKeyCompare(const void *key1, const void *key2) {
+
+/*
+des:
+    key为SDS时的比较函数
+param:
+    key1: key1
+    key2: key2
+return:
+    key1 = key2: 0
+    key1 != key2: !0
+*/
+int mdbSdsKeyCompare(const void *key1, const void *key2) {
+    if(key1 == NULL && key2 == NULL) {
+        return 0;
+    } else if(key1 == NULL || key2 == NULL) {
+        return 1;
+    }
     int l1,l2;
     l1 = mdbSdslen((SDS *)key1);
     l2 = mdbSdslen((SDS *)key2);
-    if (l1 != l2) return 0;
-    return memcmp(key1, key2, l1) == 0;
+    mdbLogWrite(LOG_DEBUG, "key1: %s, key2: %s", ((SDS *)key1)->buf, ((SDS *)key2)->buf);
+    mdbLogWrite(LOG_DEBUG, "l1: %d, l2: %d", l1, l2);
+    if (l1 != l2) return 1;
+    return memcmp(((SDS *)key1)->buf, ((SDS *)key2)->buf, l1);
 }
 
-int mdbDictMdbObjCompare(const void *v1, const void *v2) {
+/*
+des:
+    key为字符串对象时的比较函数
+param:
+    key1: key1
+    key2: key2
+return:
+    key1 = key2: 0
+    key1 != key2: !0
+*/
+int mdbStringObjKeyCompare(const void* key1, const void *key2) {
     int cmp = 0;
-    mobj *key1 = (mobj *)v1;
-    mobj *key2 = (mobj *)v2;
-    if(key1 == NULL && key2 == NULL) {
-        return 1;
-    } else if(key1 == NULL || key2 == NULL) {
+    mobj *obj1 = (mobj *)key1;
+    mobj *obj2 = (mobj *)key2;
+    if(obj1 == NULL && obj2 == NULL) {
         return 0;
+    } else if(obj1 == NULL || obj2 == NULL) {
+        return 1;
     }
-    if(key1->encoding == MDB_ENCODING_RAW || key2->encoding == MDB_ENCODING_RAW) {
-        return key1->ptr == key2->ptr;
+    if(obj1->encoding == MDB_ENCODING_RAW || obj2->encoding == MDB_ENCODING_RAW) {
+        mdbLogWrite(LOG_DEBUG, "obj1->ptr: %s, obj2->ptr: %s", obj1->ptr == NULL ? "NULL" : "NOT NULL", obj2->ptr == NULL ? "NULL" : "NOT NULL");
+        return mdbSdsKeyCompare(obj1->ptr, obj2->ptr);
     } else {
-        mobj *o1 = mdbGetDecodedObject(key1);
-        mobj *o2 = mdbGetDecodedObject(key2);
-        cmp = mdbDictSdsKeyCompare(o1->ptr, o2->ptr);
+        mobj *o1 = mdbGetDecodedObject(obj1);
+        mobj *o2 = mdbGetDecodedObject(obj2);
+        cmp = mdbSdsKeyCompare(o1->ptr, o2->ptr);
         mdbDecrRefCount(o1);
         mdbDecrRefCount(o2);
     }
@@ -67,7 +96,7 @@ dictType gSetDtype = {
     mdbHashFun,           // hash function
     NULL,                 // keydup
     NULL,                 // valdup
-    mdbDictMdbObjCompare, // keyCompare
+    mdbStringObjKeyCompare, // keyCompare
     mdbDictMdbObjFree,    // keyFree
     NULL                  // valFree 由于set没有val, 所以不用释放val
 };
@@ -76,7 +105,7 @@ dictType gHashDtype = {
     mdbHashFun,           // hash function
     NULL,                 // keydup
     NULL,                 // valdup
-    mdbDictMdbObjCompare, // keyCompare
+    mdbStringObjKeyCompare, // keyCompare
     mdbDictMdbObjFree,    // keyFree
     mdbDictMdbObjFree     // valFree
 };
@@ -488,6 +517,16 @@ __finish:
     return ret == 0 ? obj : NULL;
 }
 
+void mdbFreeListObjElement(void *ptr) {
+    if(ptr != NULL) {
+        mdbDecrRefCount(ptr);
+    }
+}
+
+int mdbMatchListObjElement(void *a, void *b) {
+    return mdbStringObjKeyCompare(a, b);
+}
+
 /*
 des:
     创建列表对象
@@ -499,7 +538,7 @@ mobj *mdbCreateListObject(void) {
     linkedList *list = NULL;
     int ret = -1;
     mobj *obj = NULL;
-    list = mdbListCreate(NULL, mdbDecrRefCount, NULL);
+    list = mdbListCreate(NULL, mdbFreeListObjElement, mdbMatchListObjElement);
     if(list == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbCreateListObject() mdbListCreate() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
@@ -750,7 +789,7 @@ return:
 */
 int mdbCreateSharedObjects(void) {
     int ret = -1;
-    for(int i = 0; i < MDB_SHARED_INTEGERS; i++) {
+    for(long i = 0; i < MDB_SHARED_INTEGERS; i++) {
         gshared.integers[i] = NULL;
         gshared.integers[i] = mdbCreateObject(MDB_STRING, (void *)i);
         if(gshared.integers[i] == NULL) {

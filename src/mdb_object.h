@@ -326,7 +326,30 @@ param:
 */
 void mdbDictMdbObjFree(void *obj);
 
+/*
+des:
+    key为SDS时的比较函数
+param:
+    key1: key1
+    key2: key2
+return:
+    key1 = key2: 0
+    key1 != key2: !0
+*/
+int mdbSdsKeyCompare(const void *key1, const void *key2);
 
+
+/*
+des:
+    key为字符串对象时的比较函数
+param:
+    key1: key1
+    key2: key2
+return:
+    key1 = key2: 0
+    key1 != key2: !0
+*/
+int mdbStringObjKeyCompare(const void* key1, const void *key2);
 
 
 

@@ -80,7 +80,7 @@ int mdbDictReplace(dict *d, void *key, void *val);
 
 /*
 des:
-    拿到key对于的值
+    拿到key对应的值
 param:
     d: 字典
     key: key

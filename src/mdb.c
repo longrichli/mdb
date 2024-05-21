@@ -136,8 +136,8 @@ int mdbCmdSdsKeyCompare(const void *key1, const void *key2) {
     l1 = mdbSdslen((SDS *)key1);
     l2 = mdbSdslen((SDS *)key2);
     mdbLogWrite(LOG_DEBUG, "mdbCmdSdsKeyCompare() key1 = %s, key2 = %s", ((SDS *)key1)->buf, ((SDS *)key2)->buf);
-    if (l1 != l2) return 1;
-    return memcmp(((SDS *)key1)->buf, ((SDS *)key2)->buf, l1);
+    if (l1 != l2) return 0;
+    return memcmp(((SDS *)key1)->buf, ((SDS *)key2)->buf, l1) == 0;
 }
 void mdbCmdSdsFree(void *ptr) {
     mdbSdsfree((SDS *)ptr);
@@ -150,7 +150,7 @@ dictType gCmdDtype = {
     mdbCmdSdsHash,        // hash函数
     NULL,                 // key复制函数
     NULL,                 // value复制函数
-    mdbCmdSdsKeyCompare,  // key比较函数
+    mdbSdsKeyCompare,  // key比较函数
     mdbCmdSdsFree,        // key析构函数
     mdbFreeCmd            // value析构函数
 };
@@ -216,6 +216,8 @@ void initCommandDict() {
     mdbDictAdd(gServer.mdbCommands, lpop->name, lpop);
     mdbCommand *rpop = mdbCreateCmd(mdbSdsnew("rpop"), mdbCommandRpop);
     mdbDictAdd(gServer.mdbCommands, rpop->name, rpop);
+    mdbCommand *lindex = mdbCreateCmd(mdbSdsnew("lindex"), mdbCommandLindex);
+    mdbDictAdd(gServer.mdbCommands, lindex->name, lindex);
     mdbCommand *llen = mdbCreateCmd(mdbSdsnew("llen"), mdbCommandLlen);
     mdbDictAdd(gServer.mdbCommands, llen->name, llen);
     mdbCommand *linsert = mdbCreateCmd(mdbSdsnew("linsert"), mdbCommandLinsert);
@@ -344,7 +346,7 @@ dictType gDBDtype = {
     mdbHashFun,           // hash function
     NULL,                 // keydup
     NULL,                 // valdup
-    mdbDictMdbObjCompare, // keyCompare
+    mdbStringObjKeyCompare, // keyCompare
     mdbDictMdbObjFree,    // keyFree
     mdbDictMdbObjFree     // valFree
 };
@@ -543,7 +545,7 @@ int mdbParseCmd(mdbClient *client, int fd) {
         goto __finish;
     }
     buf[dataLen] = '\0';
-    client->querybuf = mdbSdsnew(buf);
+    client->querybuf = mdbSdsnew((char *)buf);
     if(client->querybuf == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbParseCmd() | mdbSdsnewlen() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
@@ -560,14 +562,14 @@ int mdbParseCmd(mdbClient *client, int fd) {
         mdbLogWrite(LOG_ERROR, "mdbParseCmd() | mdbMalloc() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    token = buf;
+    token = (char *)buf;
     client->argc = 0;
     for(int i = 0; i < dataLen; i++) {
         if(buf[i] == '\r' && buf[i + 1] == '\n') {
             buf[i] = '\0';
             buf[i + 1] = '\0';
             client->argv[client->argc++] = mdbCreateStringObject(token);
-            token = buf + i + 2;
+            token = (char *)buf + i + 2;
         }
     }
     // 通过命令寻找命令处理函数

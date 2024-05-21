@@ -19,7 +19,7 @@ intset *mdbIntsetNew(void);
 
 /*
 des:
-    像给定整数集合中添加一个元素
+    向给定整数集合中添加一个元素
 param:
     iset: 整数集合
     val: 整数值

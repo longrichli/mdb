@@ -1,10 +1,17 @@
 #ifndef __MDB_EVENTLOOP_H__
 #define __MDB_EVENTLOOP_H__
-
+#define __MAC_OS__
+#ifdef __MAC_OS__
+#include <sys/event.h>
+#define MDB_READABLE 1
+#define MDB_WRITABLE 2
+#else
 #include <sys/epoll.h>
-
 #define MDB_READABLE EPOLLIN
 #define MDB_WRITABLE EPOLLOUT
+#endif
+
+
 #define MDB_NONE (0)
 #define MDB_MAX_FILE_EVENTS ((1024) * (10))
 typedef struct mdbEventLoop mdbEventLoop;
@@ -15,13 +22,20 @@ typedef struct fileEvent {
     int (*wfileProc)(struct mdbEventLoop *eventLoop, int fd, void *clientData, int mask);
 } fileEvent;
 
-typedef struct mdbEventLoop {
+struct mdbEventLoop {
+#ifdef __MAC_OS__
+    int kq;
+    struct kevent *events; /* 返回的事件列表 */
+    struct kevent *changes; /* 监视的事件列表 */
+    int index; /* 监听事件索引 */
+#else
     int epfd;
     struct epoll_event *events;
+#endif
     fileEvent fileEvents[MDB_MAX_FILE_EVENTS];
     int eventsSize;
     int stop;
-} mdbEventLoop;
+};
 
 /*
 des:
@@ -97,9 +111,6 @@ des:
     停止事件循环
 param:
     eventLoop: 事件循环实例
-return:
-    成功: 0
-    失败: -1
 */
 void mdbStopEventLoop(mdbEventLoop *eventLoop);
 #endif  /* __MDB_EVENTLOOP_H__ */

@@ -262,7 +262,18 @@ void mdbListFree(linkedList *list);
 
 
 
-
+/*
+des:
+    修剪链表
+param:
+    l: 要修剪的链表
+    start: 修剪的起始位置
+    end: 修剪的结束位置
+return:
+    成功: 修剪后的链表
+    失败: NULL
+*/
+linkedList *mdbListTrim(linkedList *l, int start, int end);
 
 
 

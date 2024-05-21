@@ -1,6 +1,7 @@
 #include "mdb_common.h"
 #include "mdb_config.h"
 #include "mdb_sds.h"
+#include "mdb_util.h"
 FILE *configFile = NULL;
 /*
 des:
@@ -11,15 +12,6 @@ unsigned int mdbConfigSdsHash(const void *v) {
     return mdbBkdrHash(sds->buf);
 }
 
-int mdbConfigSdsKeyCompare(const void *key1, const void *key2) {
-    int l1,l2;
-    l1 = mdbSdslen((SDS *)key1);
-    l2 = mdbSdslen((SDS *)key2);
-    mdbLogWrite(LOG_DEBUG, "key1: %s, key2: %s", ((SDS *)key1)->buf, ((SDS *)key2)->buf);
-    mdbLogWrite(LOG_DEBUG, "l1: %d, l2: %d", l1, l2);
-    if (l1 != l2) return 1;
-    return memcmp(((SDS *)key1)->buf, ((SDS *)key2)->buf, l1);
-}
 
 void mdbConfigSdsKeyFree(void *key) {
     mdbSdsfree((SDS *)key);
@@ -32,7 +24,7 @@ dictType gConfigDtype = {
     mdbConfigSdsHash,           // hash function
     NULL,                   // keydup
     NULL,                   // valdup
-    mdbConfigSdsKeyCompare, // keyCompare
+    mdbSdsKeyCompare,       // keyCompare
     mdbConfigSdsKeyFree,             // keyFree
     mdbConfigSdsValFree              // valFree
 };

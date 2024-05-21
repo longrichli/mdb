@@ -41,6 +41,7 @@ static dictEntry *dictFetchEntry(dict *d, void *key) {
         tmpEntry = d->ht[0].table[tableIdx];
        
         while(tmpEntry != NULL) {
+            mdbLogWrite(LOG_DEBUG, "key: %s", key == NULL ? "NULL": "NOT NULL");
             if(d->type->keyCompare(tmpEntry->key, key) == 0) {
                 
                 /* 找到了 */

@@ -20,12 +20,31 @@ mdbEventLoop *mdbCreateEventLoop(int setsize) {
         mdbLogWrite(LOG_ERROR, "mdbCreateEventLoop() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
+#ifdef __MAC_OS__
+    eventLoop->events = (struct kevent *)mdbMalloc(sizeof(struct kevent) * setsize);
+    eventLoop->changes = (struct kevent *)mdbMalloc(sizeof(struct kevent) * setsize);
+    if (eventLoop->changes == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbCreateEventLoop() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
+        mdbFree(eventLoop);
+        goto __finish;
+    }
+#else
     eventLoop->events = (struct epoll_event *)mdbMalloc(sizeof(struct epoll_event) * setsize);
+#endif
     if (eventLoop->events == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbCreateEventLoop() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
         mdbFree(eventLoop);
         goto __finish;
     }
+#ifdef __MAC_OS__
+    eventLoop->kq = kqueue();
+    if(eventLoop->kq == -1) {
+        mdbLogWrite(LOG_ERROR, "mdbCreateEventLoop() epoll_create() | At %s:%d", __FILE__, __LINE__);
+        mdbFree(eventLoop->events);
+        mdbFree(eventLoop);
+        goto __finish;
+    }
+#else
     eventLoop->epfd = epoll_create(1024);
     if (eventLoop->epfd == -1) {
         mdbLogWrite(LOG_ERROR, "mdbCreateEventLoop() epoll_create() | At %s:%d", __FILE__, __LINE__);
@@ -33,6 +52,7 @@ mdbEventLoop *mdbCreateEventLoop(int setsize) {
         mdbFree(eventLoop);
         goto __finish;
     }
+#endif
     eventLoop->eventsSize = setsize;
     eventLoop->stop = 0;
     ret = 0;
@@ -50,7 +70,11 @@ void mdbDeleteEventLoop(mdbEventLoop *eventLoop) {
     if (eventLoop == NULL) {
         return;
     }
+#ifdef __MAC_OS__
+    mdbFree(eventLoop->changes);
+#else
     close(eventLoop->epfd);
+#endif
     mdbFree(eventLoop->events);
     mdbFree(eventLoop);
 }
@@ -70,12 +94,30 @@ return:
 */
 int mdbCreateFileEvent(mdbEventLoop *eventLoop, int fd, int mask, int (*fileProc)(mdbEventLoop *eventLoop, int fd, void *clientData, int mask), void *clientData) {
     int ret = -1;
+#ifdef __MAC_OS__
+    struct kevent event;
+    int op = eventLoop->fileEvents[fd].mask == MDB_NONE ? EV_ADD | EV_ENABLE : EV_DELETE;
+#else
     struct epoll_event ee;
     int op = eventLoop->fileEvents[fd].mask == MDB_NONE ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
     ee.events = 0;
+#endif
     mask |= eventLoop->fileEvents[fd].mask;
     eventLoop->fileEvents[fd].mask = mask;
     eventLoop->fileEvents[fd].clientData = clientData;
+#ifdef __MAC_OS__
+    if(mask & MDB_READABLE) {
+        EV_SET(&event, fd, EVFILT_READ, op, 0, 0, (void *)(intptr_t)fd);
+        eventLoop->fileEvents[fd].rfileProc = fileProc;
+        mdbLogWrite(LOG_DEBUG, "MDB_READABLE");
+    }
+    if(mask & MDB_WRITABLE) {
+        EV_SET(&event, fd, EVFILT_WRITE, op, 0, 0, (void *)(intptr_t)fd);
+        eventLoop->fileEvents[fd].wfileProc = fileProc;
+        mdbLogWrite(LOG_DEBUG, "MDB_WRITEABLE");
+    }
+    kevent(eventLoop->kq, &event, 1, NULL, 0, NULL);
+#else
     if(mask & MDB_READABLE) {
         ee.events |= EPOLLIN;
         eventLoop->fileEvents[fd].rfileProc = fileProc;
@@ -90,6 +132,7 @@ int mdbCreateFileEvent(mdbEventLoop *eventLoop, int fd, int mask, int (*fileProc
         mdbLogWrite(LOG_ERROR, "mdbCreateFileEvent() epoll_ctl() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
+#endif
     ret = 0;
 __finish:
     return ret;
@@ -108,6 +151,20 @@ return:
 */
 int mdbDeleteFileEvent(mdbEventLoop *eventLoop, int fd, int mask) {
     int ret = -1;
+#ifdef __MAC_OS__
+    struct kevent event;
+    int newMask = eventLoop->fileEvents[fd].mask & (~mask);
+    eventLoop->fileEvents[fd].mask = newMask;
+    mdbLogWrite(LOG_DEBUG, "newMask= %d", newMask);
+    int op = newMask == MDB_NONE ? EV_DELETE : EV_DELETE | EV_ADD;
+     if(mask & MDB_READABLE) {
+        EV_SET(&event, fd, EVFILT_READ, op, 0, 0, (void *)(intptr_t)fd);
+    }
+    if(mask & MDB_WRITABLE) {
+        EV_SET(&event, fd, EVFILT_WRITE, op, 0, 0, (void *)(intptr_t)fd);
+    }
+    kevent(eventLoop->kq, &event, 1, NULL, 0, NULL);
+#else
     struct epoll_event ee;
     int newMask = eventLoop->fileEvents[fd].mask & (~mask);
     eventLoop->fileEvents[fd].mask = newMask;
@@ -125,6 +182,7 @@ int mdbDeleteFileEvent(mdbEventLoop *eventLoop, int fd, int mask) {
         mdbLogWrite(LOG_ERROR, "mdbDeleteFileEvent() epoll_ctl() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
+#endif
     ret = 0;
  __finish:
     return ret;   
@@ -145,8 +203,12 @@ int mdbProcessEvents(mdbEventLoop *eventLoop) {
         mdbLogWrite(LOG_ERROR, "mdbProcessEvents() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    
+#ifdef __MAC_OS__
+    struct timespec ts = {1, 0};
+    int ready = kevent(eventLoop->kq, NULL, 0, eventLoop->events, eventLoop->eventsSize, &ts);
+#else   
     int ready = epoll_wait(eventLoop->epfd, eventLoop->events, eventLoop->eventsSize, 1000);
+#endif
     if(ready == -1) {
         if(errno == EINTR) {
             ret = 0;
@@ -155,6 +217,31 @@ int mdbProcessEvents(mdbEventLoop *eventLoop) {
 
     }
     for(int i = 0; i < ready; ++i) {
+#ifdef __MAC_OS__
+        if(eventLoop->events[i].filter == EVFILT_READ) {
+            // 调用fileevent[fd]的读回调函数
+            fd = (int)(intptr_t)(eventLoop->events[i].udata);
+            if ((eventLoop->fileEvents[fd]).rfileProc(eventLoop,
+                                                    fd,
+                                                    eventLoop->fileEvents[fd].clientData,
+                                                    eventLoop->events[i].filter) < 0) {
+                mdbLogWrite(LOG_DEBUG, "mdbProcessEvents() rfileProc() | At %s:%d", __FILE__, __LINE__);
+            }
+            mdbLogWrite(LOG_DEBUG, "kqueue: readable completed");
+        }
+        if(eventLoop->events[i].filter == EVFILT_WRITE) {
+            fd = (int)(intptr_t)(eventLoop->events[i].udata);
+            mdbLogWrite(LOG_DEBUG, "kqueue: writable");
+            // 调用fileevent[fd]的写回调函数
+            if ((eventLoop->fileEvents[fd]).wfileProc(eventLoop,
+                                                    fd,
+                                                    eventLoop->fileEvents[fd].clientData,
+                                                    eventLoop->events[i].filter) < 0) {
+                mdbLogWrite(LOG_DEBUG, "mdbProcessEvents() wfileProc() | At %s:%d", __FILE__, __LINE__);
+            }
+            mdbLogWrite(LOG_DEBUG, "kqueue: writable completed");
+        }
+#else
         if(eventLoop->events[i].events == EPOLLIN) {
             mdbLogWrite(LOG_DEBUG, "epollin");
             // 调用fileevent[fd]的读回调函数
@@ -182,8 +269,9 @@ int mdbProcessEvents(mdbEventLoop *eventLoop) {
             mdbLogWrite(LOG_DEBUG, "mdbProcessEvents() epoll_wait() | At %s:%d", __FILE__, __LINE__);
             goto __finish;
         }
+#endif 
     }
-    
+   
     ret = 0;
 __finish:
     return ret;

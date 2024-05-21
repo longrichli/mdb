@@ -1,5 +1,6 @@
 #include "mdb.h"
 #include "mdb_util.h"
+#include "mdb_alloc.h"
 
 // 字符串相关命令
 // SET	向内存数据库中存入一个字符串。
@@ -189,7 +190,7 @@ void mdbCommandIncrby(mdbClient *c) {
     mobj *val = mdbDictFetchValue(c->db->dict, c->argv[1]);
     if(val == NULL) {
         // 不存在key, 看看value是否可以转换成整数
-        long long increment;
+        long increment;
         if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &increment) < 0) {
             // 发送错误信息
             if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
@@ -236,7 +237,7 @@ void mdbCommandIncrby(mdbClient *c) {
         }
         goto __finish;
     }
-    long long oldVal;
+    long oldVal;
     if(mdbIsStringRepresentableAsLong(decodedVal->ptr, &oldVal) < 0) {
         // 发送错误信息
         if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
@@ -302,7 +303,7 @@ void mdbCommandDecrby(mdbClient *c) {
     mobj *val = mdbDictFetchValue(c->db->dict, c->argv[1]);
     if(val == NULL) {
         // 不存在key, 看看value是否可以转换成整数
-        long long increment;
+        long increment;
         if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &increment) < 0) {
             // 发送错误信息
             if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
@@ -349,7 +350,7 @@ void mdbCommandDecrby(mdbClient *c) {
         }
         goto __finish;
     }
-    long long oldVal;
+    long oldVal;
     if(mdbIsStringRepresentableAsLong(decodedVal->ptr, &oldVal) < 0) {
         // 发送错误信息
         if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
@@ -454,7 +455,7 @@ void mdbCommandIncr(mdbClient *c) {
         }
         goto __finish;
     }
-    long long oldVal;
+    long oldVal;
     if(mdbIsStringRepresentableAsLong(decodedVal->ptr, &oldVal) < 0) {
         // 发送错误信息
         if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
@@ -541,136 +542,141 @@ void mdbCommandStrlen(mdbClient *c) {
 // 例如：SETRANGE key offset value
 void mdbCommandSetrange(mdbClient *c) {
     int fd = c->fd;
-    if(c->argc != 4) {
-        // 发送错误信息
-        if(mdbSendReply(fd, "ERR: wrong number of arguments for 'setrange' command\r\n", MDB_REP_ERROR) < 0) {
-            // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-        }
-        return;
-    }
-    // 根据key获取value
-    mobj *val = mdbDictFetchValue(c->db->dict, c->argv[1]);
-    if(val == NULL) {
-        // 不存在key, 直接set
-        long long offset = 0;
-        if(mdbIsObjectRepresentableAsLongLong(c->argv[2], &offset) < 0) {
-            // 发送错误信息
-            if(mdbSendReply(fd, "ERR: offset is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
-                // 发送失败
-                mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-            }
-            return;
-        }
-        // 如果offset大于value的长度, 返回错误
-        if(offset != 0) {
-            // 发送错误信息
-            if(mdbSendReply(fd, "ERR: offset is out of range\r\n", MDB_REP_ERROR) < 0) {
-                // 发送失败
-                mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-            }
-            return;
-        }
-        // 创建新的value
-        mobj *newVal = mdbDupStringObject(c->argv[3]);
-        if(newVal == NULL) {
-            // 发送错误信息
-            if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
-                // 发送失败
-                mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-            }
-            return;
-        }
-        // dup key
-        mobj *key = mdbDupStringObject(c->argv[1]);
-        // 设置key-value
-        if(mdbDictAdd(c->db->dict, key, newVal) < 0) {
-            // 发送错误信息
-            if(mdbSendReply(fd, "ERR: add key-value failed\r\n", MDB_REP_ERROR) < 0) {
-                // 发送失败
-                mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-            }
-            return;
-        }
-        // 回复OK
-        if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
-            // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-        }
-        return;
-    }
-    // 获取val的解码对象
-    mobj *decodedVal = mdbGetDecodedObject(val);
-    if(decodedVal == NULL) {
-        // 发送错误信息
-        if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
-            // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-        }
-        return;
-    }
-    long long offset = 0;
-    if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &offset) < 0) {
-        // 发送错误信息
-        if(mdbSendReply(fd, "ERR: offset is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
-            // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-        }
-        return;
-    }
-    // 如果offset大于value的长度或小于0, 返回错误
-    if(offset < 0 || offset > ((SDS *)decodedVal->ptr)->len) {
-        // 发送错误信息
-        if(mdbSendReply(fd, "ERR: offset is out of range\r\n", MDB_REP_ERROR) < 0) {
-            // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-        }
-        return;
-    }
-    // 如果offset 等于 value的长度, 直接追加
-    if(offset == ((SDS *)decodedVal->ptr)->len) {
-        mobj *newVal = mdbDupStringObject(decodedVal);
-        if(newVal == NULL) {
-            // 发送错误信息
-            if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
-                // 发送失败
-                mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-            }
-            return;
-        }
-        newVal->ptr = mdbSdscat((SDS *)newVal->ptr, ((SDS *)c->argv[3]->ptr)->buf);
-        // dup key
-        mobj *key = mdbDupStringObject(c->argv[1]);
-        // 设置key-value
-        if(mdbDictReplace (c->db->dict, key, newVal) < 0) {
-            // 发送错误信息
-            if(mdbSendReply(fd, "ERR: add key-value failed\r\n", MDB_REP_ERROR) < 0) {
-                // 发送失败
-                mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-            }
-            return;
-        }
-        // 释放内存
-        mdbDecrRefCount(decodedVal);
-        // 发送ok
-        if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
-            // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-        }
-        return;
-    }
-    // 创建新的value
-    mobj *newVal = mdbDupStringObject(decodedVal);
-    if(newVal == NULL) {
-        // 发送错误信息
-        if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
-            // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
-        }
-        return;
-    }
+    // if(c->argc != 4) {
+    //     // 发送错误信息
+    //     if(mdbSendReply(fd, "ERR: wrong number of arguments for 'setrange' command\r\n", MDB_REP_ERROR) < 0) {
+    //         // 发送失败
+    //         mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //     }
+    //     return;
+    // }
+    // // 根据key获取value
+    // mobj *val = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    // if(val == NULL) {
+    //     // 不存在key, 直接set
+    //     long offset = 0;
+    //     if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &offset) < 0) {
+    //         // 发送错误信息
+    //         if(mdbSendReply(fd, "ERR: offset is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
+    //             // 发送失败
+    //             mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //         }
+    //         return;
+    //     }
+    //     // 如果offset大于value的长度, 返回错误
+    //     if(offset != 0) {
+    //         // 发送错误信息
+    //         if(mdbSendReply(fd, "ERR: offset is out of range\r\n", MDB_REP_ERROR) < 0) {
+    //             // 发送失败
+    //             mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //         }
+    //         return;
+    //     }
+    //     // 创建新的value
+    //     mobj *newVal = mdbDupStringObject(c->argv[3]);
+    //     if(newVal == NULL) {
+    //         // 发送错误信息
+    //         if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
+    //             // 发送失败
+    //             mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //         }
+    //         return;
+    //     }
+    //     // dup key
+    //     mobj *key = mdbDupStringObject(c->argv[1]);
+    //     // 设置key-value
+    //     if(mdbDictAdd(c->db->dict, key, newVal) < 0) {
+    //         // 发送错误信息
+    //         if(mdbSendReply(fd, "ERR: add key-value failed\r\n", MDB_REP_ERROR) < 0) {
+    //             // 发送失败
+    //             mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //         }
+    //         return;
+    //     }
+    //     // 回复OK
+    //     if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
+    //         // 发送失败
+    //         mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //     }
+    //     return;
+    // }
+    // // 获取val的解码对象
+    // mobj *decodedVal = mdbGetDecodedObject(val);
+    // if(decodedVal == NULL) {
+    //     // 发送错误信息
+    //     if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
+    //         // 发送失败
+    //         mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //     }
+    //     return;
+    // }
+    // long offset = 0;
+    // if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &offset) < 0) {
+    //     // 发送错误信息
+    //     if(mdbSendReply(fd, "ERR: offset is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
+    //         // 发送失败
+    //         mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //     }
+    //     return;
+    // }
+    // // 如果offset大于value的长度或小于0, 返回错误
+    // if(offset < 0 || offset > ((SDS *)decodedVal->ptr)->len) {
+    //     // 发送错误信息
+    //     if(mdbSendReply(fd, "ERR: offset is out of range\r\n", MDB_REP_ERROR) < 0) {
+    //         // 发送失败
+    //         mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //     }
+    //     return;
+    // }
+    // // 如果offset 等于 value的长度, 直接追加
+    // if(offset == ((SDS *)decodedVal->ptr)->len) {
+    //     mobj *newVal = mdbDupStringObject(decodedVal);
+    //     if(newVal == NULL) {
+    //         // 发送错误信息
+    //         if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
+    //             // 发送失败
+    //             mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //         }
+    //         return;
+    //     }
+    //     newVal->ptr = mdbSdscat((SDS *)newVal->ptr, ((SDS *)c->argv[3]->ptr)->buf);
+    //     // dup key
+    //     mobj *key = mdbDupStringObject(c->argv[1]);
+    //     // 设置key-value
+    //     if(mdbDictReplace (c->db->dict, key, newVal) < 0) {
+    //         // 发送错误信息
+    //         if(mdbSendReply(fd, "ERR: add key-value failed\r\n", MDB_REP_ERROR) < 0) {
+    //             // 发送失败
+    //             mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //         }
+    //         return;
+    //     }
+    //     // 释放内存
+    //     mdbDecrRefCount(decodedVal);
+    //     // 发送ok
+    //     if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
+    //         // 发送失败
+    //         mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //     }
+    //     return;
+    // }
+    // // 创建新的value
+    // mobj *newVal = mdbDupStringObject(decodedVal);
+    // if(newVal == NULL) {
+    //     // 发送错误信息
+    //     if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
+    //         // 发送失败
+    //         mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    //     }
+    //     return;
+    // }
     // // 替换value
     // memcpy(((SDS *)newVal->ptr)->buf + offset, ((SDS *)c->argv[3]->ptr)->buf, ((SDS *)c->argv[3]->ptr)->len);
+
+    // 回复未开发
+    if(mdbSendReply(fd, "do not impliment\r\n", MDB_REP_ERROR) < 0) {
+        mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+    }
 
 }
 // GETRANGE	指定一个范围，返回字符串落在该范围内的字串。
@@ -705,7 +711,7 @@ void mdbCommandGetrange(mdbClient *c) {
         }
         return;
     }
-    long long start = 0;
+    long start = 0;
     if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &start) < 0) {
         // 发送错误信息
         if(mdbSendReply(fd, "ERR: start is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
@@ -714,7 +720,7 @@ void mdbCommandGetrange(mdbClient *c) {
         }
         return;
     }
-    long long end = 0;
+    long end = 0;
     if(mdbIsStringRepresentableAsLong(c->argv[3]->ptr, &end) < 0) {
         // 发送错误信息
         if(mdbSendReply(fd, "ERR: end is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {

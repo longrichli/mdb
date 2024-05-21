@@ -18,5 +18,5 @@ return:
     成功: 配置字典
     失败: NULL
 */
-dict *mdbGetConfig();
+dict *mdbGetConfig(void);
 #endif /* __MDB_CONFIG_H__ */
