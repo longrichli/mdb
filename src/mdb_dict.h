@@ -110,6 +110,26 @@ param:
 */
 void mdbDictFree(dict *d);
 
+/*
+des:
+    获取字典元素数量
+param:
+    d: 字典
+return:
+    字典元素数量
+*/
+int mdbDictSize(dict *d);
+
+/*
+des:
+    获取dict的所有key
+param:
+    d: 字典
+return:
+    key 数组
+*/
+void **mdbDictAllKey(dict *d);
+
 
 
 #endif /* __MDB_DICT_H__ */

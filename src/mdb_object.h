@@ -352,5 +352,16 @@ return:
 int mdbStringObjKeyCompare(const void* key1, const void *key2);
 
 
+/*
+des:
+    获取对象类型
+param:
+    obj: 对象
+return:
+    对象类型
+*/
+char* mdbObjectType(mobj *obj);
+
+
 
 #endif /* __MDB_OBJECT_H__ */

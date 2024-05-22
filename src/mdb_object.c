@@ -138,7 +138,7 @@ void mdbDecrRefCount(mobj *obj) {
     obj->refCount--;
     if(obj->refCount <= 0) {
         // 释放对象
-        mobjType type = obj->refCount;
+        mobjType type = obj->type;
         switch (type) {
             case MDB_STRING:
                 mdbFreeStringObj(obj);
@@ -686,6 +686,31 @@ int mdbGetLongLongFromObject(mobj *obj, long long *target) {
     ret = 0;
 __finish:
     return ret;
+}
+
+/*
+des:
+    获取对象类型
+param:
+    obj: 对象
+return:
+    对象类型
+*/
+char* mdbObjectType(mobj *obj) {
+    switch(obj->type) {
+        case MDB_STRING:
+            return "string";
+        case MDB_LIST:
+            return "list";
+        case MDB_SET:
+            return "set";
+        case MDB_HASH:
+            return "hash";
+        case MDB_ZSET:
+            return "zset";
+        default:
+            return "unknown";
+    }
 }
 
 /*

@@ -443,3 +443,48 @@ void mdbDictFree(dict *d) {
     }
 
 }
+
+/*
+des:
+    获取字典元素数量
+param:
+    d: 字典
+return:
+    字典元素数量
+*/
+int mdbDictSize(dict *d) {
+    return d->ht[0].used + d->ht[1].used;
+}
+
+/*
+des:
+    获取dict的所有key
+param:
+    d: 字典
+return:
+    key 数组
+*/
+void **mdbDictAllKey(dict *d) {
+    int size = mdbDictSize(d);
+    int i = 0;
+    dictEntry *entry = NULL;
+    dictEntry *tmpEntry = NULL;
+    void **keys = mdbMalloc(size * sizeof(void *));
+    if(keys == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbDictAllKey() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
+        return NULL;
+    }
+    memset(keys, 0, size * sizeof(void *));
+    for(int htIdx = 0; htIdx < 2; htIdx++) {
+        if(d->ht[htIdx].table != NULL && d->ht[htIdx].used > 0) {
+            for(int j = 0; j < d->ht[htIdx].sz; j++) {
+                entry = d->ht[htIdx].table[j];
+                while(entry != NULL) {
+                    keys[i++] = entry->key;
+                    entry = entry->next;
+                }
+            }
+        }
+    }
+    return keys;
+}

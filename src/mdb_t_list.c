@@ -782,5 +782,5 @@ void mdbCommandLrange(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandLrange() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
     }
-
+    mdbSdsfree(retArray);
 }

@@ -66,27 +66,97 @@ void mdbCommandKeys(mdbClient *c) {
 // DEL：用于删除一个或多个键。
 // 例如：DEL key1 key2
 void mdbCommandDel(mdbClient *c) {
+    int fd = c->fd;
+    if(c->argc < 2) {
+        mdbSendReply(fd, "ERR wrong number of arguments for 'del' command\r\n", MDB_REP_STRING);
+        return;
+    }
+    int count = 0;
+    for(int i = 1; i < c->argc; i++) {
+        if(mdbDictFetchValue(c->db->dict, c->argv[i]) != NULL) {
+            mdbDictDelete(c->db->dict, c->argv[i]);
+            count++;
+        }
+    }
+    char buf[32] = {0};
+    sprintf(buf, "%d\r\n", count);
+    mdbSendReply(fd, buf, MDB_REP_STRING);
 
 }
 // EXISTS：用于检查指定键是否存在。
 // 例如：EXISTS key
 void mdbCommandExists(mdbClient *c) {
-
+    int fd = c->fd;
+    if(c->argc != 2) {
+        mdbSendReply(fd, "ERR wrong number of arguments for 'exists' command\r\n", MDB_REP_STRING);
+        return;
+    }
+    mobj *obj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(obj == NULL) {
+        mdbSendReply(fd, "0\r\n", MDB_REP_STRING);
+    } else {
+        mdbSendReply(fd, "1\r\n", MDB_REP_STRING);
+    }
 }
 // TYPE：用于获取指定键的数据类型。
 // 例如：TYPE key
 void mdbCommandType(mdbClient *c) {
-
+    int fd = c->fd;
+    if(c->argc != 2) {
+        mdbSendReply(fd, "ERR wrong number of arguments for 'type' command\r\n", MDB_REP_STRING);
+        return;
+    }
+    mobj *obj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(obj == NULL) {
+        mdbSendReply(fd, "none\r\n", MDB_REP_STRING);
+        return;
+    }
+    char buf[32] = {0};
+    char *type = mdbObjectType(obj);
+    sprintf(buf, "%s\r\n", type);
+    mdbSendReply(fd, buf, MDB_REP_STRING);
 }
 // RENAME：用于重命名一个键。
 // 例如：RENAME old_key new_key
 void mdbCommandRename(mdbClient *c) {
-
+    int fd = c->fd;
+    if(c->argc != 3) {
+        mdbSendReply(fd, "ERR wrong number of arguments for 'rename' command\r\n", MDB_REP_STRING);
+        return;
+    }
+    mobj *obj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(obj == NULL) {
+        mdbSendReply(fd, "ERR no such key\r\n", MDB_REP_STRING);
+        return;
+    }
+    mobj *key = mdbDupStringObject(c->argv[2]);
+    mobj *val = mdbDupStringObject(obj);
+    mdbDictDelete(c->db->dict, c->argv[1]);
+    mdbDictReplace(c->db->dict, key, val);
+    mdbSendReply(fd, "OK\r\n", MDB_REP_OK);
 }
 // RENAMEX：用于重命名一个键，仅在新键不存在时执行。
 // 例如：RENAMEX old_key new_key
 void mdbCommandRenamex(mdbClient *c) {
-
+    int fd = c->fd;
+    if(c->argc != 3) {
+        mdbSendReply(fd, "ERR wrong number of arguments for'renamex' command\r\n", MDB_REP_STRING);
+        return;
+    }
+    if(mdbDictFetchValue(c->db->dict, c->argv[2]) != NULL) {
+        mdbSendReply(fd, "ERR new key already existed\r\n", MDB_REP_STRING);
+        return;
+    }
+    mobj *obj = mdbDictFetchValue(c->db->dict, c->argv[1]);
+    if(obj == NULL) {
+        mdbSendReply(fd, "ERR no such key\r\n", MDB_REP_STRING);
+        return;
+    }
+    mobj *key = mdbDupStringObject(c->argv[2]);
+    mobj *val = mdbDupStringObject(obj);
+    mdbDictDelete(c->db->dict, c->argv[1]);
+    mdbDictAdd(c->db->dict, key, val);
+    mdbSendReply(fd, "OK\r\n", MDB_REP_OK);
 }
 // EXPIRE：设置键的过期时间（以秒为单位）。
 // 例如：EXPIRE key seconds
@@ -630,33 +700,6 @@ int clientFileEventProc(mdbEventLoop *eventLoop, int fd, void *clientData, int m
     ret = 0;
 __finish:
     return ret;
-    // uint8_t buf[BUFFER_SIZE] = {0};
-    // uint16_t dataLen = 0;
-    // if(read(fd, &dataLen, sizeof(dataLen)) <= 0) {
-    //     mdbDeleteFileEvent(eventLoop, fd, MDB_READABLE);
-    //     close(fd);
-    //     return 0;
-    // }
-    // dataLen = ntohs(dataLen);
-    // if(read(fd, buf, dataLen) <= 0) {
-    //     mdbDeleteFileEvent(eventLoop, fd, MDB_READABLE);
-    //     close(fd);
-    //     return 0;
-    // }
-
-    // dataLen = htons(dataLen);
-    // if(write(fd, &dataLen, sizeof(dataLen)) < 0) {
-    //     mdbDeleteFileEvent(eventLoop, fd, MDB_READABLE);
-    //     close(fd);
-    //     return 0;
-    // }
-
-    // if(write(fd, buf, strlen(buf)) < 0) {
-    //     mdbDeleteFileEvent(eventLoop, fd, MDB_READABLE);
-    //     close(fd);
-    //     return 0;
-    // }
-
     
 }
 
