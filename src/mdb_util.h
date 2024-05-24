@@ -78,4 +78,17 @@ return:
 */
 ssize_t mdbRead(int fd, void *buf, size_t len);
 
+
+/*
+des: 
+    字符串匹配
+param:
+    s: 字符串
+    p: 模式串
+return:
+    匹配: 1
+    不匹配: 0
+*/
+int mdbStrMatch(const char *s, const char *p);
+
 #endif /* __MDB_UTIL_H__ */

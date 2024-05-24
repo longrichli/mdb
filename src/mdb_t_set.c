@@ -103,8 +103,8 @@ void mdbCommandSmembers(mdbClient *c) {
     // 构造回复
     SDS *reply = mdbSdsNewempty();
     for(int i = 0; i < mdbDictSize(set); i++) {
-        mdbSdscat(reply, ((SDS *)(keys[i]->ptr))->buf);
-        mdbSdscat(reply, "\r\n");
+        reply = mdbSdscat(reply, ((SDS *)(keys[i]->ptr))->buf);
+        reply = mdbSdscat(reply, "\r\n");
     }
     mdbSendReply(fd, reply->buf, MDB_REP_ARRAY);
     mdbSdsfree(reply);
@@ -172,8 +172,8 @@ void mdbCommandSpop(mdbClient *c) {
     SDS *reply = mdbSdsNewempty();
     for(int i = 0; i < count; i++) {
         mobj *key = keys[i];
-        mdbSdscat(reply, ((SDS *)(key->ptr))->buf);
-        mdbSdscat(reply, "\r\n");
+        reply = mdbSdscat(reply, ((SDS *)(key->ptr))->buf);
+        reply = mdbSdscat(reply, "\r\n");
         mdbDictDelete(set, key);
     }
     mdbSendReply(fd, reply->buf, MDB_REP_ARRAY);

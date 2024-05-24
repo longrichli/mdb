@@ -765,11 +765,13 @@ void mdbCommandLrange(mdbClient *c) {
     while(node != NULL && start <= stop) {
         mobj *obj = node->value;
         mdbLogWrite(LOG_DEBUG, "mdbCommandLrange() obj: %s", obj == NULL ? "NULL": "NOT NULL");
-        mdbSdscat(retArray, ((SDS *)(obj->ptr))->buf);
-        mdbSdscat(retArray, "\r\n");
+        retArray = mdbSdscat(retArray, ((SDS *)(obj->ptr))->buf);
+        retArray = mdbSdscat(retArray, "\r\n");
+        mdbLogWrite(LOG_DEBUG, "-------1");
         node = mdbListNextNode(node);
         start++;
     }
+    mdbLogWrite(LOG_DEBUG, "-------2");
     if(mdbSdslen(retArray) <= 0) {
         if(mdbSendReply(fd, "(empty array)\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
@@ -777,6 +779,7 @@ void mdbCommandLrange(mdbClient *c) {
         }
         return;
     }
+    mdbLogWrite(LOG_DEBUG, "-------3");
     // 发送数组
     if(mdbSendReply(fd, retArray->buf, MDB_REP_ARRAY) < 0) {
         // 发送失败

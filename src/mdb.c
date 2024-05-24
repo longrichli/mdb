@@ -61,7 +61,38 @@ void mdbCommandSelect(mdbClient *c) {
 // KEYS：用于查找满足指定模式的键。
 // 例如：KEYS *、KEYS user:*
 void mdbCommandKeys(mdbClient *c) {
-
+    int fd = c->fd;
+    if(c->argc != 2) {
+        // 返回错误信息
+        mdbSendReply(fd, "ERR wrong number of arguments for 'keys' command\r\n", MDB_REP_ERROR);
+        return;
+    }
+    mobj **keys = (mobj **)mdbDictAllKey(c->db->dict);
+    if(keys == NULL) {
+        // 返回空数组
+        mdbSendReply(fd, "empty array\r\n", MDB_REP_NIL);
+        return;
+    }
+    SDS *reply = mdbSdsNewempty();
+    for(int i = 0; i < mdbDictSize(c->db->dict); i++) {
+        mobj *key = keys[i];
+        int r = mdbStrMatch(((SDS *)(c->argv[1]->ptr))->buf, ((SDS *)(key->ptr))->buf);
+        if(r == 1) {
+            mdbLogWrite(LOG_DEBUG, "match key: %s", ((SDS *)(key->ptr))->buf);
+            reply = mdbSdscat(reply, ((SDS *)(key->ptr))->buf);
+            reply = mdbSdscat(reply, "\r\n");
+        }
+    }
+    if(reply->len == 0 || reply->buf[0] == '\0') {
+        // 返回空数组
+        mdbSendReply(fd, "empty array\r\n", MDB_REP_NIL);
+    } else {
+        mdbSendReply(fd, reply->buf, MDB_REP_ARRAY);
+    }
+    
+    mdbSdsfree(reply);
+    mdbFree(keys);
+    
 }
 // DEL：用于删除一个或多个键。
 // 例如：DEL key1 key2
@@ -161,22 +192,22 @@ void mdbCommandRenamex(mdbClient *c) {
 // EXPIRE：设置键的过期时间（以秒为单位）。
 // 例如：EXPIRE key seconds
 void mdbCommandExpire(mdbClient *c) {
-
+    mdbSendReply(c->fd, "ERR not support command 'expire' yet\r\n", MDB_REP_ERROR);
 }
 // TTL：获取键的剩余过期时间（以秒为单位）。
 // 例如：TTL key
 void mdbCommandTtl(mdbClient *c) {
-
+    mdbSendReply(c->fd, "ERR not support command 'ttl' yet\r\n", MDB_REP_ERROR);
 }
 // PERSIST：移除键的过期时间，使其永不过期。
 // 例如：PERSIST key
 void mdbCommandPersist(mdbClient *c) {
-
+    mdbSendReply(c->fd, "ERR not support command 'persist' yet\r\n", MDB_REP_ERROR);
 }
 // SCAN：迭代数据库中的键。
 // 例如：SCAN cursor [MATCH pattern] [COUNT count]
 void mdbCommandScan(mdbClient *c) {
-
+    mdbSendReply(c->fd, "ERR not support command 'scan' yet\r\n", MDB_REP_ERROR);
 }
 
 mdbCommand *mdbCreateCmd(SDS *name, cmdProc *proc) {

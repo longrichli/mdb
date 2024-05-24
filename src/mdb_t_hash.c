@@ -161,8 +161,8 @@ void mdbCommandHkeys(mdbClient *c) {
     // 构造回复
     SDS *reply = mdbSdsNewempty();
     for(int i = 0; i < mdbDictSize(hash); i++) {
-        mdbSdscat(reply, ((SDS *)(keys[i]->ptr))->buf);
-        mdbSdscat(reply, "\r\n");
+        reply = mdbSdscat(reply, ((SDS *)(keys[i]->ptr))->buf);
+        reply = mdbSdscat(reply, "\r\n");
     }
     mdbSendReply(fd, reply->buf, MDB_REP_ARRAY);
     mdbSdsfree(reply);
@@ -194,10 +194,10 @@ void mdbCommandHgetall(mdbClient *c) {
         mobj *key = keys[i];
         mobj *val = mdbDictFetchValue(hash, key);
         mdbLogWrite(LOG_DEBUG, "key: %s, val: %s\n", ((SDS *)(key->ptr))->buf, ((SDS *)(val->ptr))->buf);
-        mdbSdscat(reply, ((SDS *)(key->ptr))->buf);
-        mdbSdscat(reply, "\r\n");
-        mdbSdscat(reply, ((SDS *)(val->ptr))->buf);
-        mdbSdscat(reply, "\r\n");
+        reply = mdbSdscat(reply, ((SDS *)(key->ptr))->buf);
+        reply = mdbSdscat(reply, "\r\n");
+        reply = mdbSdscat(reply, ((SDS *)(val->ptr))->buf);
+        reply = mdbSdscat(reply, "\r\n");
     }
     mdbSendReply(fd, reply->buf, MDB_REP_ARRAY);
     mdbSdsfree(reply);
