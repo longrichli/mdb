@@ -20,6 +20,11 @@ void mdbCommandSadd(mdbClient *c) {
         // 将集合放入dict中
         mdbDictAdd(c->db->dict, key, setObj);
     }
+    // 检查对象的类型是否正确
+    if(setObj->type!= MDB_SET) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
+        return;
+    }
     // 获取集合
     dict *set = setObj->ptr;
     for(int i = 2; i < c->argc; i++) {
@@ -48,6 +53,11 @@ void mdbCommandScard(mdbClient *c) {
         mdbSendReply(fd, "no such set\r\n", MDB_REP_ERROR);
         return;
     }
+    // 检查对象的类型是否正确
+    if(setObj->type!= MDB_SET) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
+        return;
+    }
     // 获取集合
     dict *set = setObj->ptr;
     // 返回元素的数量
@@ -68,6 +78,11 @@ void mdbCommandSismember(mdbClient *c) {
     if(setObj == NULL) {
         // 集合不存在
         mdbSendReply(fd, "no such set\r\n", MDB_REP_ERROR);
+        return;
+    }
+    // 检查对象的类型是否正确
+    if(setObj->type!= MDB_SET) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
         return;
     }
     // 获取集合
@@ -94,6 +109,11 @@ void mdbCommandSmembers(mdbClient *c) {
     if(setObj == NULL) {
         // set不存在
         mdbSendReply(fd, "ERR: no such set\r\n", MDB_REP_ERROR);
+        return;
+    }
+    // 检查对象的类型是否正确
+    if(setObj->type!= MDB_SET) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
         return;
     }
     // 获取set
@@ -125,6 +145,11 @@ void mdbCommandSrandmember(mdbClient *c) {
         mdbSendReply(fd, "ERR: no such set\r\n", MDB_REP_ERROR);
         return;
     }
+    // 检查对象的类型是否正确
+    if(setObj->type!= MDB_SET) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
+        return;
+    }
     // 获取set
     dict *set = setObj->ptr;
     // 获取键
@@ -149,6 +174,11 @@ void mdbCommandSpop(mdbClient *c) {
     if(setObj == NULL) {
         // set不存在
         mdbSendReply(fd, "ERR: no such set\r\n", MDB_REP_ERROR);
+        return;
+    }
+    // 检查对象的类型是否正确
+    if(setObj->type!= MDB_SET) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
         return;
     }
     // 获取set
@@ -192,6 +222,11 @@ void mdbCommandSrem(mdbClient *c) {
     mobj *setObj = mdbDictFetchValue(c->db->dict, c->argv[1]);
     if(setObj == NULL) {
         mdbSendReply(fd, "no such set\r\n", MDB_REP_ERROR);
+        return;
+    }
+    // 检查对象的类型是否正确
+    if(setObj->type!= MDB_SET) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
         return;
     }
     dict *set = setObj->ptr;

@@ -2,6 +2,8 @@
 #include "mdb_list.h"
 #include "mdb_sds.h"
 #include "mdb_util.h"
+extern int strcasecmp (const char *__s1, const char *__s2)
+     __THROW __attribute_pure__ __nonnull ((1, 2));
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) < (b)) ? (b) : (a))
 
@@ -41,6 +43,15 @@ void mdbCommandLpush(mdbClient *c) {
             }
             return;
         }
+    }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
     }
     // 从列表对象中获取列表
     linkedList *l = listObj->ptr;
@@ -125,6 +136,15 @@ void mdbCommandRpush(mdbClient *c) {
             return;
         }
     }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 从列表对象中获取列表
     linkedList *l = listObj->ptr;
     for(int i = 2; i < c->argc; i++) {
@@ -184,6 +204,15 @@ void mdbCommandLpop(mdbClient *c) {
         if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandLpop() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
@@ -261,6 +290,15 @@ void mdbCommandRpop(mdbClient *c) {
         }
         return;
     }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 从列表对象中获取列表
     linkedList *l = listObj->ptr;
     mdbLogWrite(LOG_DEBUG, "mdbCommandLpop() list length: %d", l->len);
@@ -335,6 +373,15 @@ void mdbCommandLindex(mdbClient *c) {
         }
         return;
     }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 从列表对象中获取列表
     linkedList *l = listObj->ptr;
     mdbLogWrite(LOG_DEBUG, "mdbCommandLindex() list length: %d", l->len);
@@ -399,6 +446,15 @@ void mdbCommandLlen(mdbClient *c) {
         }
         return;
     }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 从列表对象中获取列表
     linkedList *l = listObj->ptr;
     mdbLogWrite(LOG_DEBUG, "mdbCommandLlen() list length: %d", l->len);
@@ -429,6 +485,15 @@ void mdbCommandLinsert(mdbClient *c) {
         if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
@@ -527,6 +592,15 @@ void mdbCommandLrem(mdbClient *c) {
         }
         return;
     }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 从列表对象中获取列表
     linkedList *l = listObj->ptr;
     mdbLogWrite(LOG_DEBUG, "mdbCommandLrem() list length: %d", l->len);
@@ -597,6 +671,15 @@ void mdbCommandLtrim(mdbClient *c) {
         }
         return;
     }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 从列表对象中获取列表
     linkedList *l = listObj->ptr;
     mdbLogWrite(LOG_DEBUG, "mdbCommandLtrim() list length: %d", l->len);
@@ -664,6 +747,15 @@ void mdbCommandLset(mdbClient *c) {
         }
         return;
     }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 获取列表
     linkedList *l = listObj->ptr;
     if(l->len == 0 || l == NULL || l->head == NULL) {
@@ -719,6 +811,15 @@ void mdbCommandLrange(mdbClient *c) {
         if(mdbSendReply(fd, "(empty array)\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandLrange() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 检查是否是列表对象
+    if(listObj->type != MDB_LIST) {
+        // 不是列表对象
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }

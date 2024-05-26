@@ -1,6 +1,6 @@
 #ifndef __MDB_EVENTLOOP_H__
 #define __MDB_EVENTLOOP_H__
-#define __MAC_OS__
+//#define __MAC_OS__
 #ifdef __MAC_OS__
 #include <sys/event.h>
 #define MDB_READABLE 1

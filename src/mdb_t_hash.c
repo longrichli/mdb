@@ -18,6 +18,10 @@ void mdbCommandHset(mdbClient *c) {
         mobj *key = mdbDupStringObject(c->argv[1]);
         mdbDictAdd(c->db->dict, key, hashObj);
     }
+    // 检查对象是否为hash类型
+    if(hashObj->type!= MDB_HASH) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
+    }
     // 获取hash表
     dict *hash = hashObj->ptr;
     // 添加键值对
@@ -50,6 +54,10 @@ void mdbCommandHget(mdbClient *c) {
         mdbSendReply(fd, "ERR: no such hash\r\n", MDB_REP_ERROR);
         return;
     }
+    // 检查对象是否为hash类型
+    if(hashObj->type!= MDB_HASH) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
+    }
     // 获取hash表
     dict *hash = hashObj->ptr;
     // 获取值
@@ -78,6 +86,10 @@ void mdbCommandHexists(mdbClient *c) {
         mdbSendReply(fd, "ERR: no such hash\r\n", MDB_REP_ERROR);
         return;
     }
+    // 检查对象是否为hash类型
+    if(hashObj->type!= MDB_HASH) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
+    }
     // 获取hash表
     dict *hash = hashObj->ptr;
     // 获取值
@@ -102,6 +114,10 @@ void mdbCommandHdel(mdbClient *c) {
         // hash表不存在
         mdbSendReply(fd, "ERR: no such hash\r\n", MDB_REP_STRING);
         return;
+    }
+    // 检查对象是否为hash类型
+    if(hashObj->type!= MDB_HASH) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
     }
     // 获取hash表
     dict *hash = hashObj->ptr;
@@ -132,6 +148,10 @@ void mdbCommandHlen(mdbClient *c) {
         mdbSendReply(fd, "ERR: no such hash\r\n", MDB_REP_ERROR);
         return;
     }
+    // 检查对象是否为hash类型
+    if(hashObj->type!= MDB_HASH) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
+    }
     // 获取集合
     dict *hash = hashObj->ptr;
     // 返回元素的数量
@@ -153,6 +173,10 @@ void mdbCommandHkeys(mdbClient *c) {
         // hash不存在
         mdbSendReply(fd, "ERR: no such hash\r\n", MDB_REP_ERROR);
         return;
+    }
+    // 检查对象是否为hash类型
+    if(hashObj->type!= MDB_HASH) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
     }
     // 获取哈希
     dict *hash = hashObj->ptr;
@@ -183,6 +207,10 @@ void mdbCommandHgetall(mdbClient *c) {
         // hash不存在
         mdbSendReply(fd, "ERR: no such hash\r\n", MDB_REP_ERROR);
         return;
+    }
+    // 检查对象是否为hash类型
+    if(hashObj->type!= MDB_HASH) {
+        mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR);
     }
     // 获取哈希
     dict *hash = hashObj->ptr;

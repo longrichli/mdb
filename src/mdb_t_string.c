@@ -2,6 +2,7 @@
 #include "mdb_util.h"
 #include "mdb_alloc.h"
 
+
 // 字符串相关命令
 // SET	向内存数据库中存入一个字符串。
 // 例如：SET key value
@@ -80,6 +81,15 @@ void mdbCommandGet(mdbClient *c) {
         }
         return;
     }
+    // 检查val的类型
+    if(val->type != MDB_STRING) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandGet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 获取val的解码对象
     mobj *decodedVal = mdbGetDecodedObject(val);
     if(decodedVal == NULL) {
@@ -131,6 +141,15 @@ void mdbCommandAppend(mdbClient *c) {
     if(val == NULL) {
         // 不存在key, 直接set
         mdbCommandSet(c);
+        return;
+    }
+    // 检查val的类型
+    if(val->type != MDB_STRING) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandGet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
         return;
     }
     // 获取val的解码对象
@@ -226,6 +245,15 @@ void mdbCommandIncrby(mdbClient *c) {
             mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
         }
         goto __finish;
+    }
+    // 检查val的类型
+    if(val->type != MDB_STRING) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandGet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
     }
     // 获取val的解码对象
     mobj *decodedVal = mdbGetDecodedObject(val);
@@ -340,6 +368,15 @@ void mdbCommandDecrby(mdbClient *c) {
         }
         goto __finish;
     }
+    // 检查val的类型
+    if(val->type != MDB_STRING) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandGet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 获取val的解码对象
     mobj *decodedVal = mdbGetDecodedObject(val);
     if(decodedVal == NULL) {
@@ -445,6 +482,15 @@ void mdbCommandIncr(mdbClient *c) {
         }
         goto __finish;
     }
+    // 检查val的类型
+    if(val->type != MDB_STRING) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandGet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 获取val的解码对象
     mobj *decodedVal = mdbGetDecodedObject(val);
     if(decodedVal == NULL) {
@@ -519,6 +565,15 @@ void mdbCommandStrlen(mdbClient *c) {
         }
         return;
     }
+    // 检查val的类型
+    if(val->type != MDB_STRING) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandGet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
     // 获取val的解码对象
     mobj *decodedVal = mdbGetDecodedObject(val);
     if(decodedVal == NULL) {
@@ -554,6 +609,15 @@ void mdbCommandSetrange(mdbClient *c) {
         if(mdbSendReply(fd, "nil\r\n", MDB_REP_NIL) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 检查val的类型
+    if(val->type != MDB_STRING) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandGet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
@@ -641,6 +705,15 @@ void mdbCommandGetrange(mdbClient *c) {
         if(mdbSendReply(fd, "nil\r\n", MDB_REP_STRING) < 0) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandGetrange() | At %s:%d", __FILE__, __LINE__);
+        }
+        return;
+    }
+    // 检查val的类型
+    if(val->type != MDB_STRING) {
+        // 发送错误信息
+        if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
+            // 发送失败
+            mdbLogWrite(LOG_ERROR, "mdbCommandGet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
