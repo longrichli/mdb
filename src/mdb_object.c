@@ -6,6 +6,7 @@
 #include "mdb_intset.h"
 #include "mdb_object.h"
 #include "mdb_util.h"
+#include "mdb_skiplist.h"
 #include <limits.h>
 #include <time.h>
 
@@ -98,7 +99,7 @@ dictType gSetDtype = {
     NULL,                 // valdup
     mdbStringObjKeyCompare, // keyCompare
     mdbDictMdbObjFree,    // keyFree
-    NULL                  // valFree 由于set没有val, 所以不用释放val
+    mdbDictMdbObjFree     // valFree
 };
 
 dictType gHashDtype = {
@@ -232,11 +233,16 @@ void mdbFreeZsetObject(mobj *obj) {
         mdbLogWrite(LOG_ERROR, "mdbFreeZsetObject() | At %s:%d", __FILE__, __LINE__);
         return;
     }
-    // zset功能还没实现
+    // zset功能
     if(obj->encoding == MDB_ENCODING_ZIPLIST) {
         // 释放zlplist内存
     } else if(obj->encoding == MDB_ENCODING_SKIPLIST) {
         // 释放skiplist内存
+        mdbSkipListFree(((zset *)obj->ptr)->sl);
+        // 释放dict内存
+        mdbDictFree(((zset *)obj->ptr)->d);
+        // 释放zset内存
+        mdbFree(obj->ptr); 
     }
 }
 
@@ -464,7 +470,7 @@ return:
     字符串长度
 */
 size_t mdbStringObjectLen(mobj *obj) {
-    if(obj == NULL || obj->encoding != MDB_STRING) {
+    if(obj == NULL || obj->type != MDB_STRING) {
         mdbLogWrite(LOG_ERROR, "mdbStringObjectLen() | At %s:%d", __FILE__, __LINE__);
         return 0;
     }
@@ -651,6 +657,14 @@ __finish:
     return ret == 0 ? obj : NULL;
 }
 
+dictType gZsetDictType = {
+    mdbHashFun,            // hash
+    NULL,                 // keydup
+    NULL,                 // valdup
+    mdbStringObjKeyCompare, // keyCompare
+    mdbDictMdbObjFree,    // keyFree
+    mdbDictMdbObjFree     // valFree
+};
 /*
 des:
     创建有序集合对象
@@ -659,8 +673,37 @@ return:
     失败: NULL
 */
 mobj *mdbCreateZsetObject(void) {
-    //  有序集合还没有实现, 先返回NULL
-    return NULL;
+    int ret = -1;
+    mobj *obj = NULL;
+    zset *zst = NULL;
+    zst = mdbMalloc(sizeof(zset));
+    if(zst == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbCreateZsetObject() mdbMalloc() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+
+    zst->sl = mdbSkipListCreate();
+    if(zst->sl == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbCreateZsetObject() mdbSkipListCreate() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    zst->d = mdbDictCreate(&gZsetDictType);
+    if(zst->d == NULL) {
+        mdbLogWrite(LOG_ERROR, "mdbCreateZsetObject() mdbDictCreate() | At %s:%d", __FILE__, __LINE__);
+        mdbSkipListFree(zst->sl);
+        goto __finish;
+    }
+    obj = mdbCreateObject(MDB_ZSET, zst);
+    if(obj == NULL) {
+        mdbSkipListFree(zst->sl);
+        mdbDictFree(zst->d);
+        mdbLogWrite(LOG_ERROR, "mdbCreateZsetObject() mdbCreateObject() | At %s:%d", __FILE__, __LINE__);
+        goto __finish;
+    }
+    obj->encoding = MDB_ENCODING_SKIPLIST;
+    ret = 0;
+__finish:
+    return ret == 0 ? obj : NULL;
 }
 
 /*
@@ -742,6 +785,7 @@ char *mdbStrEncoding(mobjEncoding encoding) {
         default:
             mdbLogWrite(LOG_DEBUG, "Not fount encoding. | At %s:%d", __FILE__, __LINE__);
     }
+    return "unknown";
 }
 
 /*

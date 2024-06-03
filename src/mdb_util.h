@@ -3,6 +3,12 @@
 #include "mdb_sds.h"
 #include "mdb_object.h"
 
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) < (b)) ? (b) : (a))
+
+extern int strcasecmp (const char *__s1, const char *__s2)
+     __THROW __attribute_pure__ __nonnull ((1, 2));
+
 /*
 des:
     将longlong型整数转换成字符串
@@ -90,5 +96,15 @@ return:
     不匹配: 0
 */
 int mdbStrMatch(const char *s, const char *p);
+
+/*
+des:
+    字符串转换为小写
+param:
+    s: 字符串
+return:
+    转换为小写的字符串
+*/
+char *mdbStrToLower(char *s);
 
 #endif /* __MDB_UTIL_H__ */

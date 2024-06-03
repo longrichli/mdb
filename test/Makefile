@@ -10,5 +10,9 @@ dict_test:
 	gcc -Wall -o dict_test mdb_dict_test.c ../src/mdb_dict.c ../src/mdb_log.c ../src/mdb_alloc.c ../src/mdb_tools.c -std=c99 -g
 intset_test:
 	gcc -Wall -o intset_test mdb_intset_test.c ../src/mdb_intset.c ../src/mdb_log.c ../src/mdb_alloc.c ../src/mdb_tools.c -std=c99 -g
+
+skiplist_test:
+	gcc -Wall -o skiplist_test skiplist.c ../src/mdb_sds.c ../src/mdb_object.c ../src/mdb_alloc.c ../src/mdb_tools.c ../src/mdb_dict.c ../src/mdb_util.c ../src/mdb_log.c ../src/mdb_intset.c  \
+	../src/mdb_list.c ../src/mdb_skiplist.c -std=c99 -g	
 clean:
 	rm -f *test

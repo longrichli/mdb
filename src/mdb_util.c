@@ -253,3 +253,23 @@ int mdbStrMatch(const char* reg, const char *str) {
     }
     return 0;//false
 }
+
+
+/*
+des:
+    字符串转换为小写
+param:
+    s: 字符串
+return:
+    转换为小写的字符串
+*/
+char *mdbStrToLower(char *s) {
+    char *p = s;
+    while (*p != '\0') {
+        if(*p >= 'A' && *p <= 'Z') {
+            *p += 32;
+        }
+        p++;
+    }
+    return s;
+}

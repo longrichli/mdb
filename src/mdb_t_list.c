@@ -2,10 +2,8 @@
 #include "mdb_list.h"
 #include "mdb_sds.h"
 #include "mdb_util.h"
-extern int strcasecmp (const char *__s1, const char *__s2)
-     __THROW __attribute_pure__ __nonnull ((1, 2));
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#define max(a, b) (((a) < (b)) ? (b) : (a))
+
+
 
 // 列表相关命令
 // LPUSH	添加元素到列表的表头。
@@ -743,7 +741,7 @@ void mdbCommandLset(mdbClient *c) {
     if(listObj == NULL) {
         if(mdbSendReply(fd, "(empty array)\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandLrange() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            mdbLogWrite(LOG_ERROR, "mdbCommandLset() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
@@ -752,7 +750,7 @@ void mdbCommandLset(mdbClient *c) {
         // 不是列表对象
         if(mdbSendReply(fd, "ERR: operation against a key holding the wrong kind of value\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            mdbLogWrite(LOG_ERROR, "mdbCommandLset() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
@@ -761,7 +759,7 @@ void mdbCommandLset(mdbClient *c) {
     if(l->len == 0 || l == NULL || l->head == NULL) {
         if(mdbSendReply(fd, "(empty array)\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandLrange() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            mdbLogWrite(LOG_ERROR, "mdbCommandLset() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
@@ -770,15 +768,15 @@ void mdbCommandLset(mdbClient *c) {
     if(mdbIsStringRepresentableAsLong((SDS *)(c->argv[2]->ptr), &index) < 0) {
         if(mdbSendReply(fd, "(error) ERR value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandLrange() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            mdbLogWrite(LOG_ERROR, "mdbCommandLset() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
-    mdbLogWrite(LOG_DEBUG, "mdbCommandLrange() | index: %ld", index);
+    mdbLogWrite(LOG_DEBUG, "mdbCommandLset() | index: %ld", index);
     if(index < 0 || index >= l->len) {
         if(mdbSendReply(fd, "Out of range\r\n", MDB_REP_OK) < 0) {
             // 发送失败
-            mdbLogWrite(LOG_ERROR, "mdbCommandLrange() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+            mdbLogWrite(LOG_ERROR, "mdbCommandLset() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         }
         return;
     }
@@ -791,7 +789,7 @@ void mdbCommandLset(mdbClient *c) {
     // 发送回复
     if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
         // 发送失败
-        mdbLogWrite(LOG_ERROR, "mdbCommandLrange() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
+        mdbLogWrite(LOG_ERROR, "mdbCommandLset() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
     }
 }
 // LRANGE	返回指定范围的列表元素。

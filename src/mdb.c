@@ -669,6 +669,10 @@ int mdbParseCmd(mdbClient *client, int fd) {
         if(buf[i] == '\r' && buf[i + 1] == '\n') {
             buf[i] = '\0';
             buf[i + 1] = '\0';
+            if(client->argc == 0) {
+                // 第一个字符串为命令名称, 将其转换为小写
+                token = mdbStrToLower(token);
+            }
             client->argv[client->argc++] = mdbCreateStringObject(token);
             token = (char *)buf + i + 2;
         }
@@ -788,7 +792,6 @@ return
 int startService(const char *ip, int port) {
     int ret = -1;
     int listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    int clientfd = -1;
     if(listenfd == -1) {
         mdbLogWrite(LOG_ERROR, "startService() socket() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
@@ -797,8 +800,6 @@ int startService(const char *ip, int port) {
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(port);
     servaddr.sin_addr.s_addr = inet_addr(ip);
-    struct sockaddr_in cliaddr;
-    socklen_t cliaddrLen = 0;
 
     if(bind(listenfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) == -1) {
         mdbLogWrite(LOG_ERROR, "startService() bind() | At %s:%d", __FILE__, __LINE__);

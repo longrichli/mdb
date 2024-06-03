@@ -17,6 +17,7 @@ SERVER_SRC_FILE = mdb.c \
 				  mdb_t_zset.c \
 				  mdb_object.c \
 				  mdb_config.c \
+				  mdb_skiplist.c \
 				  
 CLIENT_SRC_FILE = mdb_cli.c \
 				  mdb_alloc.c \
@@ -25,9 +26,9 @@ CLIENT_SRC_FILE = mdb_cli.c \
 				  mdb_log.c \
 				  mdb_tools.c
 mdb-server:${SERVER_SRC_FILE}
-	${CC} -o mdb-server ${SERVER_SRC_FILE} -std=c99
+	${CC} -Wall -o mdb-server ${SERVER_SRC_FILE} -std=c99
 mdb-cli:${CLIENT_SRC_FILE}
-	${CC} -o mdb-cli ${CLIENT_SRC_FILE}
+	${CC} -Wall -o mdb-cli ${CLIENT_SRC_FILE}
 
 all: mdb-server mdb-cli
 

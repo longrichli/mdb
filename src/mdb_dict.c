@@ -468,7 +468,6 @@ void **mdbDictAllKey(dict *d) {
     int size = mdbDictSize(d);
     int i = 0;
     dictEntry *entry = NULL;
-    dictEntry *tmpEntry = NULL;
     void **keys = mdbMalloc(size * sizeof(void *));
     if(keys == NULL) {
         mdbLogWrite(LOG_ERROR, "mdbDictAllKey() mdbMalloc() | At %s:%d", __FILE__, __LINE__);

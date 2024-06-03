@@ -16,7 +16,6 @@ static int splitCmd(char *buf, char *cmd) {
         subStr = strtok(NULL, " \t\r\n");
     }
     ret = 0;
-__finish:
     return ret;
 }
 
@@ -54,7 +53,6 @@ int sendCommand(int fd, char *cmd) {
     char buf[BIGBUFFER_SIZE] = {0};
     uint16_t cmdLen = 0, wCmdLen = 0;
     
-    char *subStr = NULL;
     if(fd < 0 || cmd == NULL || cmd[0] == '\0') {
         mdbLogWrite(LOG_ERROR, "sendCommand() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
@@ -89,8 +87,7 @@ __finish:
 
 int readResault(int fd, char **result, uint8_t *code) {
     int ret = -1;
-    uint16_t resultLen = 0, wCmdLen = 0;
-    char *subStr = NULL;
+    uint16_t resultLen = 0;
     if(fd < 0 || result == NULL || code == NULL) {
         mdbLogWrite(LOG_ERROR, "readResault() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
