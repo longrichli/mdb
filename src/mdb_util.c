@@ -196,7 +196,9 @@ ssize_t mdbRead(int fd, void *buf, size_t len) {
             mdbLogWrite(LOG_ERROR, "mdbRead() read() | At %s:%d", __FILE__, __LINE__);
             goto __finish;
         } else if(rLen == 0) {
-            mdbLogWrite(LOG_DEBUG, "mdbRead() read() | At %s:%d", __FILE__, __LINE__);
+            ret = 0;
+            rAllLen = 0;
+            mdbLogWrite(LOG_DEBUG, "mdbRead() read():: client exit | At %s:%d", __FILE__, __LINE__);
             goto __finish;
         } else {
             len -= rLen;

@@ -98,6 +98,8 @@ void mdbCommandLpush(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandLpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
     }
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // RPUSH	添加元素到列表的表尾。
 // 例如：RPUSH key value1 value2
@@ -182,6 +184,8 @@ void mdbCommandRpush(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandRpush() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
     }
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // LPOP	弹出列表的表头节点。
 // 例如：LPOP key
@@ -258,6 +262,8 @@ void mdbCommandLpop(mdbClient *c) {
     mdbDecrRefCount(newObj);
     // 释放节点
     mdbListDelNode(l, node);
+    // AOF 追加
+    mdbAppendAOF(c);
 #ifdef TEST
     // 看看链表头是否为空
     node = mdbListFirst(l);
@@ -341,6 +347,8 @@ void mdbCommandRpop(mdbClient *c) {
     mdbDecrRefCount(newObj);
     // 释放节点
     mdbListDelNode(l, node);
+    // AOF 追加
+    mdbAppendAOF(c);
 #ifdef TEST
     // 看看链表头是否为空
     node = mdbListFirst(l);
@@ -565,8 +573,8 @@ void mdbCommandLinsert(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandLinsert() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
     }
-    
-
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // LREM	删除列表中指定的节点。
 // 例如：LREM key count value
@@ -647,7 +655,8 @@ void mdbCommandLrem(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandLrem() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
     }
-    
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // LTRIM	修剪列表在指定的范围内。
 // 例如：LTRIM key start stop
@@ -724,7 +733,8 @@ void mdbCommandLtrim(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandLtrim() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
     }
-
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // LSET	设置列表中指定索引的元素。
 // 例如：LSET key index value
@@ -791,6 +801,8 @@ void mdbCommandLset(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandLset() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
     }
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // LRANGE	返回指定范围的列表元素。
 // 例如：LRANGE key start stop

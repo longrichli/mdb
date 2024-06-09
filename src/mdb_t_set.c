@@ -37,6 +37,8 @@ void mdbCommandSadd(mdbClient *c) {
     char buf[32] = {0};
     sprintf(buf, "%d\r\n", mdbDictSize(set));
     mdbSendReply(fd, buf, MDB_REP_STRING);
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // SCARD	返回集合内元素的数量。
 // 例如：SCARD key
@@ -209,6 +211,8 @@ void mdbCommandSpop(mdbClient *c) {
     mdbSendReply(fd, reply->buf, MDB_REP_ARRAY);
     mdbSdsfree(reply);
     mdbFree(keys);
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // SREM	移除集合中指定的元素。
 // 例如：SREM key member1 member2
@@ -240,4 +244,6 @@ void mdbCommandSrem(mdbClient *c) {
     char buf[32] = {0};
     sprintf(buf, "%d\r\n", count);
     mdbSendReply(fd, buf, MDB_REP_OK);
+    // AOF 追加
+    mdbAppendAOF(c);
 }

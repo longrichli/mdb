@@ -46,6 +46,8 @@ void mdbCommandZadd(mdbClient *c) {
     char buf[32] = {0};
     sprintf(buf, "%d\r\n", count);
     mdbSendReply(fd, buf, MDB_REP_STRING);
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // ZCARD	返回有序集合中元素的数量。
 // 例如：ZCARD key
@@ -349,6 +351,8 @@ void mdbCommandZrem(mdbClient *c) {
     char buf[32] = {0};
     sprintf(buf, "%d\r\n", count);
     mdbSendReply(fd, buf, MDB_REP_STRING);
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // ZSCORE	返回指定元素的分值。
 // 例如：ZSCORE key member

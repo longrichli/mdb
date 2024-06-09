@@ -77,7 +77,6 @@ dict *mdbGetConfig() {
         if (mdbSdslen(key) == 0 || mdbSdslen(value) == 0) {
             continue;
         }
-        mdbLogWrite(LOG_DEBUG, "key: %s, value: %s", key->buf, value->buf);
         mdbDictAdd(configDict, key, value);
     }
     return configDict;

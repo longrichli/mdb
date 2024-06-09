@@ -5,6 +5,8 @@
 #include "mdb_sds.h"
 #include "mdb_object.h"
 #include "mdb_common.h"
+#include "mdb_aof.h"
+#include "mdb_eventloop.h"
 
 #define MDB_REP_OK (0)
 #define MDB_REP_ERROR (-1)
@@ -28,6 +30,14 @@ typedef struct mdbServer {
     int dbnum;
     linkedList *clients;
     dict *mdbCommands;
+    AOFBuf *abuf;
+    int aof;
+    char aofpath[BUFFER_SIZE];
+    int aofflushtime;
+    long lasttime;
+    long curtime;
+    uint32_t cmdTotal;
+    mdbEventLoop *loop;
 } mdbServer;
 
 typedef struct mdbClient {
@@ -47,6 +57,8 @@ typedef struct mdbCommand {
 } mdbCommand;
 
 int mdbSendReply(int fd, char *reply , uint8_t code);
+
+int mdbAppendAOF(mdbClient *c);
 
 // 通用命令
 

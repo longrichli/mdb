@@ -8,8 +8,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdint.h>
 #include "mdb_log.h"
 #include "mdb_tools.h"
+extern char *strsignal (int __sig) __THROW;
 
 #define MINBUFFER_SIZE (256)
 #define BUFFER_SIZE (4096)

@@ -5,10 +5,13 @@
 #include "mdb_alloc.h"
 #include "mdb_object.h"
 #include <getopt.h>
+#include <time.h>
 #include <arpa/inet.h>
 #include "mdb_config.h"
 #include "mdb_util.h"
-#define BANNER_FILEPATH "banner.txt"
+#include "mdb_cli_lib.h"
+#include <signal.h>
+#define BANNER_FILEPATH "../banner/banner.txt"
 #define DEFAULT_PORT (8181)
 #define DEFAULT_IP "127.0.0.1"
 #define LOG_PATH "mdb.log"
@@ -56,6 +59,8 @@ void mdbCommandSelect(mdbClient *c) {
         mdbLogWrite(LOG_ERROR, "mdbCommandSelect() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         return;
     }
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 
 // KEYS：用于查找满足指定模式的键。
@@ -112,7 +117,8 @@ void mdbCommandDel(mdbClient *c) {
     char buf[32] = {0};
     sprintf(buf, "%d\r\n", count);
     mdbSendReply(fd, buf, MDB_REP_STRING);
-
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // EXISTS：用于检查指定键是否存在。
 // 例如：EXISTS key
@@ -165,6 +171,8 @@ void mdbCommandRename(mdbClient *c) {
     mdbDictDelete(c->db->dict, c->argv[1]);
     mdbDictReplace(c->db->dict, key, val);
     mdbSendReply(fd, "OK\r\n", MDB_REP_OK);
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // RENAMEX：用于重命名一个键，仅在新键不存在时执行。
 // 例如：RENAMEX old_key new_key
@@ -188,6 +196,8 @@ void mdbCommandRenamex(mdbClient *c) {
     mdbDictDelete(c->db->dict, c->argv[1]);
     mdbDictAdd(c->db->dict, key, val);
     mdbSendReply(fd, "OK\r\n", MDB_REP_OK);
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // EXPIRE：设置键的过期时间（以秒为单位）。
 // 例如：EXPIRE key seconds
@@ -209,6 +219,35 @@ void mdbCommandPersist(mdbClient *c) {
 void mdbCommandScan(mdbClient *c) {
     mdbSendReply(c->fd, "ERR not support command 'scan' yet\r\n", MDB_REP_ERROR);
 }
+
+
+int mdbAppendAOF(mdbClient *c) {
+    if(!gServer.aof) {
+        return 0;
+    }
+    uint16_t len = c->querybuf->len;
+    if(mdbAppendAOFBuf(gServer.abuf,(void *)&len, sizeof(len)) < 0) {
+        return -1;
+    }
+    if(mdbAppendAOFBuf(gServer.abuf,c->querybuf->buf, len) < 0) {
+        return -1;
+    }
+    gServer.cmdTotal++;
+    gServer.curtime = time(NULL);
+    if(gServer.lasttime == 0) {
+        // 第一个命令，记录时间
+        gServer.lasttime = gServer.curtime;
+    }
+    if(gServer.curtime - gServer.lasttime >= gServer.aofflushtime) {
+        // 超过一定时间，刷新AOF文件
+        mdbFlushAOFBuf(gServer.abuf);
+        // 记录命令数量
+        mdbWriteAOFCommandCount(gServer.cmdTotal);
+        gServer.lasttime = gServer.curtime;
+    }
+    return 0;
+}
+
 
 mdbCommand *mdbCreateCmd(SDS *name, cmdProc *proc) {
     mdbCommand *cmd = mdbMalloc(sizeof(mdbCommand));
@@ -396,14 +435,12 @@ void loadConfig() {
             if(ipval != NULL) {
                 memset(gServer.ip, 0, sizeof(gServer.ip));
                 strncpy(gServer.ip, ipval->buf, ipval->len);
-                mdbLogWrite(LOG_DEBUG, "ip: %s", gServer.ip);
             }
             mdbSdsfree(ipkey);
             SDS *portkey = mdbSdsnew("port");
             SDS *portval = mdbDictFetchValue(config, portkey);
             if(portval != NULL) {
                 gServer.port = atoi(portval->buf);
-                mdbLogWrite(LOG_DEBUG, "port: %d", gServer.port);
             }
             mdbSdsfree(portkey);
             SDS *logpathKey = mdbSdsnew("logpath");
@@ -411,7 +448,6 @@ void loadConfig() {
             if(logpathVal != NULL) {
                 memset(gServer.logpath, 0, sizeof(gServer.logpath));
                 strncpy(gServer.logpath, logpathVal->buf, logpathVal->len);
-                mdbLogWrite(LOG_DEBUG, "logpath: %s", gServer.logpath);
             }
             mdbSdsfree(logpathKey);
             SDS *loglevelKey = mdbSdsnew("loglevel");
@@ -436,6 +472,32 @@ void loadConfig() {
                 gServer.dbnum = atoi(databasesVal->buf);
             }
             mdbSdsfree(databasesKey);
+            SDS *aofKey = mdbSdsnew("aof");
+            SDS *aofVal = mdbDictFetchValue(config, aofKey);
+            if(aofVal != NULL) {
+                if(strcmp(aofVal->buf, "yes") == 0) {
+                    gServer.aof = 1;
+                    SDS *aofpathKey = mdbSdsnew("aofpath");
+                    SDS *aofpathVal = mdbDictFetchValue(config, aofpathKey);
+                    memset(gServer.aofpath, 0, sizeof(gServer.aofpath));
+                    if(aofpathVal != NULL) {
+                        strncpy(gServer.aofpath, aofpathVal->buf, aofpathVal->len);
+                    } else {
+                        strncpy(gServer.aofpath, AOF_DEFAULT_PATH, strlen(AOF_DEFAULT_PATH));
+                    }
+                    mdbSdsfree(aofpathKey);
+                    SDS *aofflushtimeKey = mdbSdsnew("aofflushtime");
+                    SDS *aofflushtimeVal = mdbDictFetchValue(config, aofflushtimeKey);
+                    if(aofflushtimeVal != NULL) {
+                        gServer.aofflushtime = atoi(aofflushtimeVal->buf);
+                    } else {
+                        gServer.aofflushtime = AOF_DEFAULT_FLUSH_TIME;
+                    }
+                } else {
+                    gServer.aof = 0;
+                }
+            }
+            mdbSdsfree(aofKey);
             mdbDictFree(config);
 
         }
@@ -506,6 +568,26 @@ void mdbClientFree(void *c) {
     mdbFree(client);
 }
 
+int mdbClientMatch(void *a, void *b) {
+    mdbClient *clientA = (mdbClient *)a;
+    mdbClient *clientB = (mdbClient *)b;
+    if(a == b) {
+        return 0;
+    }
+    if(clientA->fd == clientB->fd) {
+        return 0;
+    }
+    return 1;
+}
+
+
+
+void mdbStartAOF() {
+    mdbRenameOldAOFFile(gServer.aofpath);
+    gServer.abuf = mdbInitAOFBuf();
+    mdbCreateAOFFile(gServer.aofpath);
+    mdbWriteAOFCommandCount(0);
+}
 
 int initMdbServer(void) {
     int ret = -1;
@@ -517,14 +599,21 @@ int initMdbServer(void) {
     gServer.loglevel = LOG_INFO;
     gServer.mdbCommands = NULL;
     gServer.db = NULL;
-    // 初始化命令字典
-    initCommandDict();
+    gServer.aof = 0;
+    gServer.abuf = NULL;
+    gServer.aofflushtime = 0;
+    gServer.lasttime = 0;
+    gServer.curtime = 0;
+    gServer.cmdTotal = 0;
+    gServer.loop = NULL;
     // 加载配置
     loadConfig();
     if(gServer.dbnum <= 0) {
         mdbLogWrite(LOG_ERROR, "initMdbServer() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
+    // 初始化命令字典
+    initCommandDict();
     // 初始化数据库
     gServer.db = mdbCreateDb(gServer.dbnum);
     if(gServer.db == NULL) {
@@ -532,7 +621,7 @@ int initMdbServer(void) {
         goto __finish;
     }
     // 创建客户端链表
-    gServer.clients = mdbListCreate(NULL, mdbClientFree, NULL);
+    gServer.clients = mdbListCreate(NULL, mdbClientFree, mdbClientMatch);
     if(gServer.clients == NULL) {
         mdbLogWrite(LOG_ERROR, "initMdbServer() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
@@ -542,6 +631,11 @@ int initMdbServer(void) {
     if(mdbCreateSharedObjects() < 0) {
         mdbLogWrite(LOG_ERROR, "initMdbServer() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
+    }
+
+    if(gServer.aof) {
+        // 开启AOF机制
+        mdbStartAOF();
     }
     ret = 0;
 __finish:
@@ -561,6 +655,16 @@ void destroyMdbServer(void) {
     if(gServer.mdbCommands != NULL) {
         mdbDictFree(gServer.mdbCommands);
     }
+    if(gServer.aof) {
+        // 刷新AOFBuf
+        mdbFlushAOFBuf(gServer.abuf);
+        // 记录命令数量
+        mdbWriteAOFCommandCount(gServer.cmdTotal);
+        // 关闭AOF文件
+        mdbCloseAOFFile();
+    }
+    mdbStopEventLoop(gServer.loop);
+    mdbDeleteEventLoop(gServer.loop);
 }
 
 void loadBanner(void) {
@@ -636,12 +740,19 @@ int mdbParseCmd(mdbClient *client, int fd) {
     uint16_t dataLen = 0;
     char *token = NULL;
     int argc = 0;
-    if(mdbRead(fd, &dataLen, sizeof(dataLen)) <= 0) {
+    ssize_t readLen = 0;
+    if((readLen = mdbRead(fd, &dataLen, sizeof(dataLen))) <= 0) {
+        if(readLen == 0) {
+            goto __finish;
+        }
         mdbLogWrite(LOG_ERROR, "mdbParseCmd() | read() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
     dataLen = ntohs(dataLen);
     if(mdbRead(fd, buf, dataLen) <= 0) {
+        if(readLen == 0) {
+            goto __finish;
+        }
         mdbLogWrite(LOG_ERROR, "mdbParseCmd() | read() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
@@ -730,6 +841,10 @@ int clientFileEventProc(mdbEventLoop *eventLoop, int fd, void *clientData, int m
     if(mdbParseCmd(client, fd) < 0) {
         mdbDeleteFileEvent(eventLoop, fd, MDB_READABLE);
         close(fd);
+        // 将客户端从客户端链表中删除
+        listNode *node = mdbListSearchKey(gServer.clients, client);
+        mdbLogWrite(LOG_DEBUG, "node: %s", node == NULL ? "NULL" : "NOT NULL");
+        mdbListDelNode(gServer.clients, node);
         goto __finish;
     }
     ret = 0;
@@ -778,6 +893,53 @@ __finish:
     return ret;
 }
 
+void mdbStartFakeMdbClient(char *tmpAOFFile) {
+    int clientFd = connectToServer(gServer.ip, gServer.port);
+    if(clientFd < 0) {
+        mdbLogWrite(LOG_ERROR, "mdbStartFakeMdbClient() connectToServer() | At %s:%d", __FILE__, __LINE__);
+        return;
+    }
+    mdbLogWrite(LOG_DEBUG, "tmpAOFFile: %s", tmpAOFFile);
+    // 打开AOF文件
+    int fd = open(tmpAOFFile, O_RDONLY);
+    if(fd < 0) {
+        mdbLogWrite(LOG_ERROR, "mdbStartFakeMdbClient() open() | At %s:%d", __FILE__, __LINE__);
+        return;
+    }
+    // 解析命令
+    uint32_t cmdCount = mdbReadAOFCommandCount(fd);
+    mdbLogWrite(LOG_DEBUG, "cmdCount: %d", cmdCount);
+    for(int i = 0; i < cmdCount; i++) {
+        char *cmd = NULL;
+        if(mdbReadAOFFile(fd, &cmd) < 0) {
+            mdbLogWrite(LOG_ERROR, "mdbStartFakeMdbClient() mdbReadAOFCommand() | At %s:%d", __FILE__, __LINE__);
+            continue;
+        }
+        // 发送命令
+        if(sendCommand(clientFd, cmd) < 0) {
+            mdbLogWrite(LOG_ERROR, "mdbStartFakeMdbClient() sendCommand() | At %s:%d", __FILE__, __LINE__);
+            continue;
+        }
+        char *result = NULL;
+        uint8_t code = 0;
+        if(readResault(clientFd, &result, &code) < 0) {
+            mdbLogWrite(LOG_ERROR, "mdbStartFakeMdbClient() readResault() | At %s:%d", __FILE__, __LINE__);
+            continue;
+        }
+        if(code == MDB_REP_ERROR) {
+            mdbLogWrite(LOG_ERROR, "mdbStartFakeMdbClient() readResault() | At %s:%d", __FILE__, __LINE__);
+            continue;
+        }
+        mdbFree(result);
+        mdbFree(cmd);
+    }
+    close(clientFd);
+    close(fd);
+    // 删除临时AOF文件
+    unlink(tmpAOFFile);
+
+
+}
 
 /*
 des
@@ -811,7 +973,7 @@ int startService(const char *ip, int port) {
     }
     mdbLogWrite(LOG_INFO, "Server start at %s:%d", ip, port);
 
-    mdbEventLoop *loop = mdbCreateEventLoop(1024);
+    mdbEventLoop *loop = gServer.loop = mdbCreateEventLoop(1024);
     mdbLogWrite(LOG_DEBUG, "create EventLoop Completed!");
     if(loop == NULL) {
         mdbLogWrite(LOG_ERROR, "startService() mdbCreateEventLoop()  | At %s:%d", __FILE__, __LINE__);
@@ -823,6 +985,22 @@ int startService(const char *ip, int port) {
         mdbLogWrite(LOG_ERROR, "startService() mdbCreateFileEvent() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
+    // 如果开启了AOF, 开辟子进程进行解析AOF文件, 通过socket 发送给服务器
+    if(gServer.aof) {
+        char buf[BUFFER_SIZE] = {0};
+        sprintf(buf, "%s.tmp", gServer.aofpath);
+        mdbLogWrite(LOG_DEBUG, "tmpAOFFile: %s", buf);
+        if(access(buf, F_OK | R_OK) == 0) {
+            pid_t pid = fork();
+            if(pid < 0) {
+                mdbLogWrite(LOG_ERROR, "startService() fork() | At %s:%d", __FILE__, __LINE__);
+                goto __finish;
+            } else if(pid == 0) {
+                mdbStartFakeMdbClient(buf);
+                exit(EXIT_SUCCESS);   
+            }
+        }
+    }
     if(mdbStartEventLoop(loop) < 0) {
         mdbLogWrite(LOG_ERROR, "startService() mdbStartEventLoop() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
@@ -832,7 +1010,41 @@ __finish:
     return ret;
 }
 
+void signalHandler(int signo) {
+    if(signo == SIGINT || signo == SIGTERM) {
+        // 如果是SIGINT信号, 关闭服务器
+        mdbLogWrite(LOG_INFO, "Server stop");
+        destroyMdbServer();
+        exit(EXIT_SUCCESS);
+    } else if(signo == SIGSEGV || signo == SIGILL || signo == SIGFPE || signo == SIGBUS || signo == SIGABRT) {
+        // 如果是异常信号, 打印异常信号名
+        mdbLogWrite(LOG_ERROR, "signoHandler() sig: %s| At %s:%d", strsignal(signo), __FILE__, __LINE__);
+        destroyMdbServer();
+        exit(EXIT_FAILURE);
+    }
+}
+
+void signalHandle(void) {
+    // 忽略SIG_CHLD信号
+    signal(SIGCHLD, SIG_IGN);
+    // 处理SIGINT信号
+    signal(SIGINT, signalHandler);
+    // 处理SIGTERM信号
+    signal(SIGTERM, signalHandler);
+    // 处理SIGSEGV信号
+    signal(SIGSEGV, signalHandler);
+    // 处理SIGILL信号
+    signal(SIGILL, signalHandler);
+    // 处理SIGFPE信号
+    signal(SIGFPE, signalHandler);
+    // 处理SIGBUS信号
+    signal(SIGBUS, signalHandler);
+    // 处理SIGABRT信号
+    signal(SIGABRT, signalHandler);
+}
 int main(int argc, char **argv) {
+    // 信号处理
+    signalHandle();
     // 初始化mdbServer
     if(initMdbServer() < 0) {
         mdbLogWrite(LOG_ERROR, "main() initMdbServer() | At %s:%d", __FILE__, __LINE__);
@@ -884,9 +1096,6 @@ int main(int argc, char **argv) {
     }
     if(strlen(gServer.ip) == 0) {
         strncpy(gServer.ip, DEFAULT_IP, strlen(DEFAULT_IP));
-    }
-    if(gServer.loglevel == 0) {
-        gServer.loglevel = LOG_INFO;
     }
     if(strlen(gServer.logpath) == 0) {
         strncpy(gServer.logpath, LOG_PATH, strlen(LOG_PATH));

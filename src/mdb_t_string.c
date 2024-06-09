@@ -17,6 +17,8 @@ void mdbCommandSet(mdbClient *c) {
         }
         return;
     }
+
+
     // 获取key
     mobj *key = mdbDupStringObject(c->argv[1]);
     if(key == NULL) {
@@ -56,6 +58,8 @@ void mdbCommandSet(mdbClient *c) {
         mdbLogWrite(LOG_ERROR, "mdbCommandSet() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
         return;
     }
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // GET	从内存数据库中取出一个字符串。
 // 例如：GET key
@@ -191,7 +195,9 @@ void mdbCommandAppend(mdbClient *c) {
     if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandAppend() mdbSendReply() | At %s:%d", __FILE__, __LINE__);
-    } 
+    }
+    // AOF 追加
+    mdbAppendAOF(c); 
 }
 // INCRBY	如果字符串可以转换成整数，对其进行加法运算，将运算结果保存。如果不能转成整数，返回一个错误。
 // 例如：INCRBY key increment
@@ -312,6 +318,8 @@ void mdbCommandIncrby(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
     }
+    // AOF 追加
+    mdbAppendAOF(c);
 __finish:
     return;
 }
@@ -434,6 +442,8 @@ void mdbCommandDecrby(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandDecrby() | At %s:%d", __FILE__, __LINE__);
     }
+    // AOF 追加
+    mdbAppendAOF(c);
 __finish:
     return;
 }
@@ -540,6 +550,8 @@ void mdbCommandIncr(mdbClient *c) {
         // 发送失败
         mdbLogWrite(LOG_ERROR, "mdbCommandIncy() | At %s:%d", __FILE__, __LINE__);
     }
+    // AOF 追加
+    mdbAppendAOF(c);
 __finish:
     return;
 }
@@ -685,6 +697,8 @@ void mdbCommandSetrange(mdbClient *c) {
         mdbLogWrite(LOG_ERROR, "mdbCommandSetrange() | At %s:%d", __FILE__, __LINE__);
     }
     mdbFree(buf);
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // GETRANGE	指定一个范围，返回字符串落在该范围内的字串。
 // 例如：GETRANGE key start end

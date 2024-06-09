@@ -55,8 +55,6 @@ int mdbSdsKeyCompare(const void *key1, const void *key2) {
     int l1,l2;
     l1 = mdbSdslen((SDS *)key1);
     l2 = mdbSdslen((SDS *)key2);
-    mdbLogWrite(LOG_DEBUG, "key1: %s, key2: %s", ((SDS *)key1)->buf, ((SDS *)key2)->buf);
-    mdbLogWrite(LOG_DEBUG, "l1: %d, l2: %d", l1, l2);
     if (l1 != l2) return 1;
     return memcmp(((SDS *)key1)->buf, ((SDS *)key2)->buf, l1);
 }

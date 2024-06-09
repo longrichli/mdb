@@ -14,8 +14,8 @@ incrby key increment            x
 decrby key decrement            x
 incr key                        x
 strlen key
-setrange key
-getrange key
+setrange key offset value
+getrange key start end
 ### list
 lpush key val [val...]
 rpush key val [val...]
@@ -30,7 +30,7 @@ lrange key start end
 ### hash
 hset key k v [k v ...]
 hget key k
-hexists key k
+HEXSITS key k
 hdel key k
 hlen key
 hkeys key
@@ -44,8 +44,15 @@ srandmember key
 spop key count
 srem key member1 member2 ...
 ### zset
-
-
+zadd key score1 member1 score2 member2 ...
+zcard key
+zcount key min max
+zrange key start stop
+zrevrange key start stop
+zrank key member
+zrevrank key member
+zrem key member1 member2
+zsore key member
 ### common
 select idx
 keys pattern

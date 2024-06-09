@@ -138,9 +138,9 @@ int mdbSkipListDeleteNode(skiplist *sl, double score, mobj *obj) {
         mdbSkipListFreeNode(x);
         return 1;
     } else {
-        return 0; /* not found */
+        return 0; 
     }
-    return 0; /* not found */
+    return 0; 
 }
 
 unsigned long mdbSkipListDeleteRangeByScore(skiplist *sl, rangespec range, dict *dict) {

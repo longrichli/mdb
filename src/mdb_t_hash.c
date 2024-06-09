@@ -37,6 +37,8 @@ void mdbCommandHset(mdbClient *c) {
     char buf[32] = {0};
     sprintf(buf, "%d\r\n", count);
     mdbSendReply(fd, buf, MDB_REP_STRING);
+    // AOF 追加
+    mdbAppendAOF(c);
 
 }
 // HGET	输入键获取值。
@@ -132,6 +134,8 @@ void mdbCommandHdel(mdbClient *c) {
     char buf[32] = {0};
     sprintf(buf, "%d\r\n", count);
     mdbSendReply(fd, buf, MDB_REP_STRING);
+    // AOF 追加
+    mdbAppendAOF(c);
 }
 // HLEN	返回哈希表中键值对的数量。
 // 例如：HLEN key

@@ -18,6 +18,8 @@ SERVER_SRC_FILE = mdb.c \
 				  mdb_object.c \
 				  mdb_config.c \
 				  mdb_skiplist.c \
+				  mdb_aof.c \
+				  mdb_cli_lib.c \
 				  
 CLIENT_SRC_FILE = mdb_cli.c \
 				  mdb_alloc.c \
@@ -25,12 +27,18 @@ CLIENT_SRC_FILE = mdb_cli.c \
 				  mdb_util.c \
 				  mdb_log.c \
 				  mdb_tools.c
-mdb-server:${SERVER_SRC_FILE}
-	${CC} -Wall -o mdb-server ${SERVER_SRC_FILE} -std=c99
-mdb-cli:${CLIENT_SRC_FILE}
-	${CC} -Wall -o mdb-cli ${CLIENT_SRC_FILE}
-
-all: mdb-server mdb-cli
+CLIENT_SO_SRC_FILE = mdb_alloc.c \
+					 mdb_cli_lib.c \
+					 mdb_util.c \
+					 mdb_log.c \
+					 mdb_tools.c 
+../bin/mdb-server:${SERVER_SRC_FILE}
+	${CC} -Wall -o ../bin/mdb-server ${SERVER_SRC_FILE} -std=c99
+../bin/mdb-cli:${CLIENT_SRC_FILE}
+	${CC} -Wall -o ../bin/mdb-cli ${CLIENT_SRC_FILE}
+../lib/libmdbcli.so:
+	${CC} -Wall -shared -o ../lib/libmdbcli.so -fPIC ${CLIENT_SO_SRC_FILE}
+all: ../bin/mdb-server ../bin/mdb-cli ../lib/libmdbcli.so
 
 clean:
-	rm -f mdb-server mdb-cli
+	rm -f ../bin/mdb-server ../bin/mdb-cli ../lib/libmdbcli.so

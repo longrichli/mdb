@@ -1,0 +1,191 @@
+INFO:   [2024-06-05 12:52:43]# Server start at 0.0.0.0:8181
+INFO:   [2024-06-05 13:08:43]# Server start at 0.0.0.0:8181
+INFO:   [2024-06-05 13:08:48]# client ip: 0.0.0.0
+INFO:   [2024-06-05 13:09:37]# Server stop
+INFO:   [2024-06-05 13:14:28]# Server start at 0.0.0.0:8181
+INFO:   [2024-06-05 13:14:50]# Server stop
+INFO:   [2024-06-05 13:17:14]# Server start at 0.0.0.0:8181
+INFO:   [2024-06-05 13:17:17]# client ip: 0.0.0.0
+INFO:   [2024-06-05 13:22:08]# Server stop
+INFO:   [2024-06-05 13:22:17]# Server start at 0.0.0.0:8181
+INFO:   [2024-06-05 13:23:02]# Server stop
+INFO:   [2024-06-05 13:23:13]# Server start at 0.0.0.0:8181
+INFO:   [2024-06-05 13:23:40]# Server stop
+INFO:   [2024-06-05 13:26:34]# Server start at 0.0.0.0:8181
+INFO:   [2024-06-05 13:29:16]# Server stop
+INFO:   [2024-06-05 13:29:37]# Server start at 0.0.0.0:8181
+INFO:   [2024-06-05 13:32:03]# Server stop
+INFO:   [2024-06-05 13:32:07]# Server start at 0.0.0.0:8181
+DEBUG:  [2024-06-05 13:32:07]# create EventLoop Completed!
+DEBUG:  [2024-06-05 13:32:07]# gServer.aof: 1
+INFO:   [2024-06-05 13:34:29]# Server stop
+INFO:   [2024-06-05 13:34:56]# Server start at 0.0.0.0:8181
+DEBUG:  [2024-06-05 13:34:56]# create EventLoop Completed!
+DEBUG:  [2024-06-05 13:34:56]# tmpAOFFile: mdb.aof.tmp
+INFO:   [2024-06-05 13:36:19]# Server stop
+INFO:   [2024-06-05 13:36:30]# Server start at 0.0.0.0:8181
+DEBUG:  [2024-06-05 13:36:30]# create EventLoop Completed!
+DEBUG:  [2024-06-05 13:36:30]# tmpAOFFile: mdb.aof.tmp
+INFO:   [2024-06-05 13:37:16]# Server stop
+INFO:   [2024-06-05 13:37:19]# Server start at 0.0.0.0:8181
+DEBUG:  [2024-06-05 13:37:19]# create EventLoop Completed!
+DEBUG:  [2024-06-05 13:37:19]# tmpAOFFile: mdb.aof.tmp
+DEBUG:  [2024-06-05 13:37:48]# epollin
+INFO:   [2024-06-05 13:37:48]# client ip: 0.0.0.0
+DEBUG:  [2024-06-05 13:37:48]# epollin completed
+DEBUG:  [2024-06-05 13:37:53]# epollin
+DEBUG:  [2024-06-05 13:37:53]# epollin completed
+DEBUG:  [2024-06-05 13:37:55]# epollin
+DEBUG:  [2024-06-05 13:37:55]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:37:55]# epollin completed
+DEBUG:  [2024-06-05 13:37:57]# epollin
+DEBUG:  [2024-06-05 13:37:57]# mdbRead() read():: client exit | At mdb_util.c:201
+DEBUG:  [2024-06-05 13:37:57]# newMask= 0
+DEBUG:  [2024-06-05 13:37:57]# node: NOT NULL
+DEBUG:  [2024-06-05 13:37:57]# mdbProcessEvents() rfileProc() | At mdb_eventloop.c:253
+DEBUG:  [2024-06-05 13:37:57]# epollin completed
+ERROR:  [2024-06-05 13:38:05]# startService() bind() | At mdb.c:960
+ERROR:  [2024-06-05 13:38:05]# startService() failed | At mdb.c:1108
+INFO:   [2024-06-05 13:38:27]# Server stop
+INFO:   [2024-06-05 13:38:36]# Server start at 0.0.0.0:8181
+DEBUG:  [2024-06-05 13:38:36]# create EventLoop Completed!
+DEBUG:  [2024-06-05 13:38:36]# tmpAOFFile: mdb.aof.tmp
+DEBUG:  [2024-06-05 13:39:52]# epollin
+INFO:   [2024-06-05 13:39:52]# client ip: 0.0.0.0
+DEBUG:  [2024-06-05 13:39:52]# epollin completed
+DEBUG:  [2024-06-05 13:39:55]# epollin
+DEBUG:  [2024-06-05 13:39:55]# epollin completed
+DEBUG:  [2024-06-05 13:42:15]# epollin
+DEBUG:  [2024-06-05 13:42:15]# mdbRead() read():: client exit | At mdb_util.c:201
+DEBUG:  [2024-06-05 13:42:15]# newMask= 0
+DEBUG:  [2024-06-05 13:42:15]# node: NOT NULL
+DEBUG:  [2024-06-05 13:42:15]# mdbProcessEvents() rfileProc() | At mdb_eventloop.c:253
+DEBUG:  [2024-06-05 13:42:15]# epollin completed
+INFO:   [2024-06-05 13:42:26]# Server stop
+INFO:   [2024-06-05 13:45:47]# Server start at 0.0.0.0:8181
+DEBUG:  [2024-06-05 13:45:47]# create EventLoop Completed!
+DEBUG:  [2024-06-05 13:45:47]# tmpAOFFile: /opt/project_c/mdb/src/mdb.oaf.tmp
+DEBUG:  [2024-06-05 13:46:22]# epollin
+INFO:   [2024-06-05 13:46:22]# client ip: 0.0.0.0
+DEBUG:  [2024-06-05 13:46:22]# epollin completed
+DEBUG:  [2024-06-05 13:46:27]# epollin
+DEBUG:  [2024-06-05 13:46:27]# epollin completed
+DEBUG:  [2024-06-05 13:46:29]# epollin
+DEBUG:  [2024-06-05 13:46:29]# epollin completed
+DEBUG:  [2024-06-05 13:46:32]# epollin
+DEBUG:  [2024-06-05 13:46:32]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:46:32]# epollin completed
+DEBUG:  [2024-06-05 13:46:39]# epollin
+DEBUG:  [2024-06-05 13:46:39]# epollin completed
+DEBUG:  [2024-06-05 13:47:07]# epollin
+DEBUG:  [2024-06-05 13:47:07]# epollin completed
+DEBUG:  [2024-06-05 13:48:18]# epollin
+DEBUG:  [2024-06-05 13:48:18]# epollin completed
+DEBUG:  [2024-06-05 13:48:22]# epollin
+DEBUG:  [2024-06-05 13:48:22]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:48:22]# epollin completed
+DEBUG:  [2024-06-05 13:48:34]# epollin
+DEBUG:  [2024-06-05 13:48:34]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:48:34]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:48:34]# mdbDictReplace() replace | At mdb_dict.c:264
+DEBUG:  [2024-06-05 13:48:34]# epollin completed
+DEBUG:  [2024-06-05 13:48:37]# epollin
+DEBUG:  [2024-06-05 13:48:37]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:48:37]# epollin completed
+DEBUG:  [2024-06-05 13:49:59]# epollin
+DEBUG:  [2024-06-05 13:49:59]# mdbRead() read():: client exit | At mdb_util.c:201
+DEBUG:  [2024-06-05 13:49:59]# newMask= 0
+DEBUG:  [2024-06-05 13:49:59]# node: NOT NULL
+DEBUG:  [2024-06-05 13:49:59]# mdbProcessEvents() rfileProc() | At mdb_eventloop.c:253
+DEBUG:  [2024-06-05 13:49:59]# epollin completed
+INFO:   [2024-06-05 13:50:28]# Server stop
+INFO:   [2024-06-05 13:50:34]# Server start at 0.0.0.0:8181
+DEBUG:  [2024-06-05 13:50:34]# create EventLoop Completed!
+DEBUG:  [2024-06-05 13:50:34]# tmpAOFFile: /opt/project_c/mdb/src/mdb.oaf.tmp
+DEBUG:  [2024-06-05 13:50:34]# epollin
+INFO:   [2024-06-05 13:50:34]# client ip: 0.0.0.0
+DEBUG:  [2024-06-05 13:50:34]# epollin completed
+DEBUG:  [2024-06-05 13:50:34]# tmpAOFFile: /opt/project_c/mdb/src/mdb.oaf.tmp
+DEBUG:  [2024-06-05 13:50:34]# cmdCount: 3
+DEBUG:  [2024-06-05 13:50:34]# epollin
+DEBUG:  [2024-06-05 13:50:34]# epollin completed
+DEBUG:  [2024-06-05 13:50:34]# epollin
+DEBUG:  [2024-06-05 13:50:34]# epollin completed
+DEBUG:  [2024-06-05 13:50:34]# epollin
+DEBUG:  [2024-06-05 13:50:34]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:50:34]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:50:34]# mdbDictReplace() replace | At mdb_dict.c:264
+DEBUG:  [2024-06-05 13:50:34]# epollin completed
+DEBUG:  [2024-06-05 13:50:34]# epollin
+DEBUG:  [2024-06-05 13:50:34]# mdbRead() read():: client exit | At mdb_util.c:201
+DEBUG:  [2024-06-05 13:50:34]# newMask= 0
+DEBUG:  [2024-06-05 13:50:34]# node: NOT NULL
+DEBUG:  [2024-06-05 13:50:34]# mdbProcessEvents() rfileProc() | At mdb_eventloop.c:253
+DEBUG:  [2024-06-05 13:50:34]# epollin completed
+DEBUG:  [2024-06-05 13:50:37]# epollin
+INFO:   [2024-06-05 13:50:37]# client ip: 0.0.0.0
+DEBUG:  [2024-06-05 13:50:37]# epollin completed
+DEBUG:  [2024-06-05 13:50:39]# epollin
+DEBUG:  [2024-06-05 13:50:39]# match key: str1
+DEBUG:  [2024-06-05 13:50:39]# match key: str2
+DEBUG:  [2024-06-05 13:50:39]# epollin completed
+DEBUG:  [2024-06-05 13:50:57]# epollin
+DEBUG:  [2024-06-05 13:50:57]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:50:57]# epollin completed
+DEBUG:  [2024-06-05 13:51:02]# epollin
+DEBUG:  [2024-06-05 13:51:02]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:51:02]# epollin completed
+DEBUG:  [2024-06-05 13:51:35]# epollin
+DEBUG:  [2024-06-05 13:51:35]# mdbRead() read():: client exit | At mdb_util.c:201
+DEBUG:  [2024-06-05 13:51:35]# newMask= 0
+DEBUG:  [2024-06-05 13:51:35]# node: NOT NULL
+DEBUG:  [2024-06-05 13:51:35]# mdbProcessEvents() rfileProc() | At mdb_eventloop.c:253
+DEBUG:  [2024-06-05 13:51:35]# epollin completed
+INFO:   [2024-06-05 13:53:23]# Server stop
+INFO:   [2024-06-05 13:55:39]# Server start at 0.0.0.0:8181
+DEBUG:  [2024-06-05 13:55:39]# create EventLoop Completed!
+DEBUG:  [2024-06-05 13:55:39]# tmpAOFFile: /opt/project_c/mdb/src/mdb.aof.tmp
+DEBUG:  [2024-06-05 13:55:39]# epollin
+INFO:   [2024-06-05 13:55:39]# client ip: 0.0.0.0
+DEBUG:  [2024-06-05 13:55:39]# epollin completed
+DEBUG:  [2024-06-05 13:55:39]# tmpAOFFile: /opt/project_c/mdb/src/mdb.aof.tmp
+DEBUG:  [2024-06-05 13:55:39]# cmdCount: 3
+DEBUG:  [2024-06-05 13:55:39]# epollin
+DEBUG:  [2024-06-05 13:55:39]# epollin completed
+DEBUG:  [2024-06-05 13:55:39]# epollin
+DEBUG:  [2024-06-05 13:55:39]# epollin completed
+DEBUG:  [2024-06-05 13:55:39]# epollin
+DEBUG:  [2024-06-05 13:55:39]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:55:39]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:55:39]# mdbDictReplace() replace | At mdb_dict.c:264
+DEBUG:  [2024-06-05 13:55:39]# epollin completed
+DEBUG:  [2024-06-05 13:55:39]# epollin
+DEBUG:  [2024-06-05 13:55:39]# mdbRead() read():: client exit | At mdb_util.c:201
+DEBUG:  [2024-06-05 13:55:39]# newMask= 0
+DEBUG:  [2024-06-05 13:55:39]# node: NOT NULL
+DEBUG:  [2024-06-05 13:55:39]# mdbProcessEvents() rfileProc() | At mdb_eventloop.c:253
+DEBUG:  [2024-06-05 13:55:39]# epollin completed
+DEBUG:  [2024-06-05 13:55:43]# epollin
+INFO:   [2024-06-05 13:55:43]# client ip: 0.0.0.0
+DEBUG:  [2024-06-05 13:55:43]# epollin completed
+DEBUG:  [2024-06-05 13:55:46]# epollin
+DEBUG:  [2024-06-05 13:55:46]# match key: str1
+DEBUG:  [2024-06-05 13:55:46]# match key: str2
+DEBUG:  [2024-06-05 13:55:46]# epollin completed
+DEBUG:  [2024-06-05 13:55:48]# epollin
+DEBUG:  [2024-06-05 13:55:48]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:55:48]# epollin completed
+DEBUG:  [2024-06-05 13:55:51]# epollin
+DEBUG:  [2024-06-05 13:55:51]# obj1->ptr: NOT NULL, obj2->ptr: NOT NULL
+DEBUG:  [2024-06-05 13:55:51]# epollin completed
+DEBUG:  [2024-06-05 14:11:41]# epollin
+DEBUG:  [2024-06-05 14:11:41]# match key: str1
+DEBUG:  [2024-06-05 14:11:41]# match key: str2
+DEBUG:  [2024-06-05 14:11:41]# epollin completed
+DEBUG:  [2024-06-05 14:11:49]# epollin
+DEBUG:  [2024-06-05 14:11:49]# mdbRead() read():: client exit | At mdb_util.c:201
+DEBUG:  [2024-06-05 14:11:49]# newMask= 0
+DEBUG:  [2024-06-05 14:11:49]# node: NOT NULL
+DEBUG:  [2024-06-05 14:11:49]# mdbProcessEvents() rfileProc() | At mdb_eventloop.c:253
+DEBUG:  [2024-06-05 14:11:49]# epollin completed
+INFO:   [2024-06-05 14:12:03]# Server stop

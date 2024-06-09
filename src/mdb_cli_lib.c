@@ -46,20 +46,24 @@ __finish:
     return ret == 0 ? sock : -1;
 }
 
+void disconnectFromServer(int fd) {
+    close(fd);
+}
 
 
 int sendCommand(int fd, char *cmd) {
     int ret = -1;
     char buf[BIGBUFFER_SIZE] = {0};
+    char cmdBak[BIGBUFFER_SIZE] = {0};
     uint16_t cmdLen = 0, wCmdLen = 0;
     
     if(fd < 0 || cmd == NULL || cmd[0] == '\0') {
         mdbLogWrite(LOG_ERROR, "sendCommand() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
-    
+    strcpy(cmdBak, cmd);
     // 分割命令
-    if(splitCmd(buf, cmd) < 0) {
+    if(splitCmd(buf, cmdBak) < 0) {
         mdbLogWrite(LOG_ERROR, "sendCommand() splitCmd() | At %s:%d", __FILE__, __LINE__);
         goto __finish;
     }
