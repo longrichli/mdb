@@ -167,9 +167,9 @@ void mdbCommandRename(mdbClient *c) {
         return;
     }
     mobj *key = mdbDupStringObject(c->argv[2]);
-    mobj *val = mdbDupStringObject(obj);
+    mdbIncrRefCount(obj);
     mdbDictDelete(c->db->dict, c->argv[1]);
-    mdbDictReplace(c->db->dict, key, val);
+    mdbDictReplace(c->db->dict, key, obj);
     mdbSendReply(fd, "OK\r\n", MDB_REP_OK);
     // AOF 追加
     mdbAppendAOF(c);
@@ -192,9 +192,9 @@ void mdbCommandRenamex(mdbClient *c) {
         return;
     }
     mobj *key = mdbDupStringObject(c->argv[2]);
-    mobj *val = mdbDupStringObject(obj);
+    mdbIncrRefCount(obj);
     mdbDictDelete(c->db->dict, c->argv[1]);
-    mdbDictAdd(c->db->dict, key, val);
+    mdbDictAdd(c->db->dict, key, obj);
     mdbSendReply(fd, "OK\r\n", MDB_REP_OK);
     // AOF 追加
     mdbAppendAOF(c);
@@ -226,10 +226,14 @@ int mdbAppendAOF(mdbClient *c) {
         return 0;
     }
     uint16_t len = c->querybuf->len;
-    if(mdbAppendAOFBuf(gServer.abuf,(void *)&len, sizeof(len)) < 0) {
+    gServer.abuf = mdbAppendAOFBuf(gServer.abuf,(void *)&len, sizeof(len));
+    if(gServer.abuf == NULL) {
+        mdbLogWrite(LOG_ERROR , "mdbAppendAOF() mdbAppendAOFBuf() | At %s:%d", __FILE__);
         return -1;
     }
-    if(mdbAppendAOFBuf(gServer.abuf,c->querybuf->buf, len) < 0) {
+    gServer.abuf = mdbAppendAOFBuf(gServer.abuf,c->querybuf->buf, len);
+    if(gServer.abuf == NULL) {
+        mdbLogWrite(LOG_ERROR , "mdbAppendAOF() mdbAppendAOFBuf() | At %s:%d", __LINE__);
         return -1;
     }
     gServer.cmdTotal++;
@@ -843,7 +847,6 @@ int clientFileEventProc(mdbEventLoop *eventLoop, int fd, void *clientData, int m
         close(fd);
         // 将客户端从客户端链表中删除
         listNode *node = mdbListSearchKey(gServer.clients, client);
-        mdbLogWrite(LOG_DEBUG, "node: %s", node == NULL ? "NULL" : "NOT NULL");
         mdbListDelNode(gServer.clients, node);
         goto __finish;
     }
@@ -1113,6 +1116,12 @@ int main(int argc, char **argv) {
     int listenfd = startService(gServer.ip, gServer.port);
     if(listenfd == -1) {
         mdbLogWrite(LOG_ERROR, "startService() failed | At %s:%d", __FILE__, __LINE__);
+        unlink(gServer.aofpath);
+        char buf[BUFFER_SIZE] = {0};
+        sprintf(buf, "%s.tmp", gServer.aofpath);
+        if(access(buf, F_OK) == 0) {
+            rename(buf, gServer.aofpath);
+        }
         exit(EXIT_FAILURE);
     }
     return 0;

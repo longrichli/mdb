@@ -78,8 +78,7 @@ int mdbStringObjKeyCompare(const void* key1, const void *key2) {
     } else if(obj1 == NULL || obj2 == NULL) {
         return 1;
     }
-    if(obj1->encoding == MDB_ENCODING_RAW || obj2->encoding == MDB_ENCODING_RAW) {
-        mdbLogWrite(LOG_DEBUG, "obj1->ptr: %s, obj2->ptr: %s", obj1->ptr == NULL ? "NULL" : "NOT NULL", obj2->ptr == NULL ? "NULL" : "NOT NULL");
+    if(obj1->encoding == MDB_ENCODING_RAW && obj2->encoding == MDB_ENCODING_RAW) {
         return mdbSdsKeyCompare(obj1->ptr, obj2->ptr);
     } else {
         mobj *o1 = mdbGetDecodedObject(obj1);
@@ -424,14 +423,7 @@ mobj *mdbGetDecodedObject(mobj *obj) {
     mobj *dec = NULL;
     char buf[32] = {0};
     if(obj == NULL || obj->type != MDB_STRING) {
-        mdbLogWrite(LOG_DEBUG, obj == NULL ? "obj is NULL" : "obj is not NULL");
         if(obj != NULL)
-        mdbLogWrite(LOG_DEBUG, obj->type == MDB_STRING ? "obj is string" : "obj is not string");
-        mdbLogWrite(LOG_ERROR, "mdbGetDecodedObject() | At %s:%d", __FILE__, __LINE__);
-        mdbLogWrite(LOG_DEBUG, "obj->encoding : %d", obj->encoding);
-        mdbLogWrite(LOG_DEBUG, "obj->type : %d", obj->type);
-        mdbLogWrite(LOG_DEBUG, "obj->ptr : %s", obj->ptr == NULL ? "NULL" : "NOT NULL");
-        mdbLogWrite(LOG_DEBUG, "obj->refCount : %d", obj->refCount);
         goto __finish;
     }
     if(obj->encoding == MDB_ENCODING_RAW) {
@@ -499,7 +491,7 @@ mobj *mdbCreateStringObjectFromLongLong(long long value) {
         mdbLogWrite(LOG_DEBUG, "mdbCreateStringObjectFromLongLong() | Use Shared Object");
         // 使用共享对象
         obj = gshared.integers[value];
-        mdbLogWrite(LOG_DEBUG, "obj : %s", obj == NULL ? "NULL" : "NOT NULL");
+        mdbIncrRefCount(obj);
     } else if(value >= LONG_MIN && value <= LONG_MAX) {
         obj = mdbCreateObject(MDB_STRING, (void *)value);
         if(obj == NULL) {

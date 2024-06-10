@@ -159,7 +159,7 @@ void mdbCommandHlen(mdbClient *c) {
     // 获取集合
     dict *hash = hashObj->ptr;
     // 返回元素的数量
-    char buf[32];
+    char buf[32] = {0};
     sprintf(buf, "%d\r\n", mdbDictSize(hash));
     mdbSendReply(fd, buf, MDB_REP_STRING);
 }

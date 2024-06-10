@@ -15,7 +15,7 @@ void mdbRenameOldAOFFile(char* filename);
 AOFBuf *mdbInitAOFBuf();
 void mdbFreeAOFBuf(AOFBuf *abuf);
 int mdbWriteAOFCommandCount(uint32_t count);
-int mdbAppendAOFBuf(AOFBuf *abuf, void *data, size_t len);
+AOFBuf *mdbAppendAOFBuf(AOFBuf *abuf, void *data, size_t len);
 void mdbFlushAOFBuf(AOFBuf *abuf);
 int mdbCreateAOFFile(char *filename);
 void mdbCloseAOFFile();

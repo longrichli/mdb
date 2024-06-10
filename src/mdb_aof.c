@@ -8,7 +8,7 @@
 static int gAofFd = -1;
 
 static AOFBuf *mdbResizeAOFBuf(AOFBuf *abuf) {
-    int newLen = 0;
+    size_t newLen = 0;
     if(abuf->len >= 1024 * 1024) {
         newLen = abuf->len + 1024 * 1024;
     } else {
@@ -21,7 +21,7 @@ static AOFBuf *mdbResizeAOFBuf(AOFBuf *abuf) {
         mdbFreeAOFBuf(abuf);
         return NULL;
     }
-    abuf->len = newLen;
+    abuf->len = (size_t)(abuf->data) + newLen;
     abuf->pos = abuf->data + dataSz;
     return abuf;
 }
@@ -70,17 +70,17 @@ void mdbFreeAOFBuf(AOFBuf *abuf) {
     mdbFree(abuf);
 }
 
-int mdbAppendAOFBuf(AOFBuf *abuf, void *data, size_t len) {
+AOFBuf *mdbAppendAOFBuf(AOFBuf *abuf, void *data, size_t len) {
     if(((size_t)abuf->pos + len) > abuf->len) {
         abuf = mdbResizeAOFBuf(abuf);
         if(abuf == NULL) {
             mdbLogWrite(LOG_ERROR, "mdbAppendAOFBuf() mdbResizeAOFBuf() err: %s | At %s:%d", strerror(errno), __FILE__, __LINE__);
-            return -1;
+            return NULL;
         }
     }
     memcpy(abuf->pos, data, len);
     abuf->pos += len;
-    return 0;
+    return abuf;
 }
 void mdbFlushAOFBuf(AOFBuf *abuf) {
     mdbWriteAOFFile(abuf->data, abuf->pos - abuf->data);

@@ -58,3 +58,6 @@ src/mdb-server
 src/mdb-cli
 log/*.log
 bin/
+lib/libmdbcli.so
+lib/examples/exec_cmd
+lib/examples/handle_num

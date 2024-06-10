@@ -243,7 +243,6 @@ int mdbProcessEvents(mdbEventLoop *eventLoop) {
         }
 #else
         if(eventLoop->events[i].events == EPOLLIN) {
-            mdbLogWrite(LOG_DEBUG, "epollin");
             // 调用fileevent[fd]的读回调函数
             fd = eventLoop->events[i].data.fd;
             if((eventLoop->fileEvents[fd]).rfileProc(eventLoop,
@@ -252,7 +251,6 @@ int mdbProcessEvents(mdbEventLoop *eventLoop) {
                                                  eventLoop->events[i].events) < 0) {
                 mdbLogWrite(LOG_DEBUG, "mdbProcessEvents() rfileProc() | At %s:%d", __FILE__, __LINE__);
             }
-            mdbLogWrite(LOG_DEBUG, "epollin completed");
 
         }
         if(eventLoop->events[i].events == EPOLLOUT) {

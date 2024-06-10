@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
     int dbIndex = 0;
     uint8_t code = -1;
     char *subStr = NULL;
+    char *res = NULL;
     if(argc > 1) {
         host = argv[1];
     }
@@ -37,13 +38,22 @@ int main(int argc, char **argv) {
     if (sock == -1) {
         return 1;
     }
+    // 默认进入索引为0的数据库
+    sendCommand(sock, "select 0");
+    readResault(sock, &res, &code);
+    if(code != 0) {
+        fprintf(stderr, "err: connect server failed!\n");
+        disconnectFromServer(sock);
+        return EXIT_FAILURE;
+    }
+    mdbFree(res);
+    res = NULL;
     // 读取用户输入的命令
     while(1) {
         sprintf(prefix, "[mdb %s:%d(%d)]# ", host, port, dbIndex);
         printf("%s", prefix);
         char cmd[MAX_COMMAND_SIZE] = {0};
         char tmpCmd[MAX_COMMAND_SIZE] = {0};
-        char *res = NULL;
         fgets(cmd, sizeof(cmd), stdin);
         if(isBlack(cmd)) {
             continue;
@@ -56,6 +66,7 @@ int main(int argc, char **argv) {
         
         printf("%s", res);
         mdbFree(res);
+        res = NULL;
         subStr = strtok(tmpCmd, " \n\r\t");
         if(strcmp(subStr, "exit") == 0) {
             break;
@@ -67,6 +78,7 @@ int main(int argc, char **argv) {
                 }
             }
         }
+
 
     }
     printf("Bye!\n");

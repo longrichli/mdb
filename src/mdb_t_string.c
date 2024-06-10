@@ -215,7 +215,7 @@ void mdbCommandIncrby(mdbClient *c) {
     mobj *val = mdbDictFetchValue(c->db->dict, c->argv[1]);
     if(val == NULL) {
         // 不存在key, 看看value是否可以转换成整数
-        long increment;
+        long increment = 0;
         if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &increment) < 0) {
             // 发送错误信息
             if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
@@ -250,6 +250,8 @@ void mdbCommandIncrby(mdbClient *c) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandIncrby() | At %s:%d", __FILE__, __LINE__);
         }
+        // AOF 追加
+        mdbAppendAOF(c);
         goto __finish;
     }
     // 检查val的类型
@@ -339,8 +341,8 @@ void mdbCommandDecrby(mdbClient *c) {
     mobj *val = mdbDictFetchValue(c->db->dict, c->argv[1]);
     if(val == NULL) {
         // 不存在key, 看看value是否可以转换成整数
-        long increment;
-        if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &increment) < 0) {
+        long decrement = 0;
+        if(mdbIsStringRepresentableAsLong(c->argv[2]->ptr, &decrement) < 0) {
             // 发送错误信息
             if(mdbSendReply(fd, "ERR: value is not an integer or out of range\r\n", MDB_REP_ERROR) < 0) {
                 // 发送失败
@@ -349,7 +351,7 @@ void mdbCommandDecrby(mdbClient *c) {
             goto __finish;
         }
         // 创建新的value
-        mobj *newVal = mdbCreateStringObjectFromLongLong(increment);
+        mobj *newVal = mdbCreateStringObjectFromLongLong(decrement);
         if(newVal == NULL) {
             // 发送错误信息
             if(mdbSendReply(fd, "ERR: out of memory\r\n", MDB_REP_ERROR) < 0) {
@@ -374,6 +376,8 @@ void mdbCommandDecrby(mdbClient *c) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandDecrby() | At %s:%d", __FILE__, __LINE__);
         }
+        // AOF 追加
+        mdbAppendAOF(c);
         goto __finish;
     }
     // 检查val的类型
@@ -490,6 +494,8 @@ void mdbCommandIncr(mdbClient *c) {
             // 发送失败
             mdbLogWrite(LOG_ERROR, "mdbCommandIncy() | At %s:%d", __FILE__, __LINE__);
         }
+        // AOF 追加
+        mdbAppendAOF(c);
         goto __finish;
     }
     // 检查val的类型
@@ -597,7 +603,7 @@ void mdbCommandStrlen(mdbClient *c) {
         return;
     }
     // 发送value的长度
-    char buf[32];
+    char buf[32] = {0};
     int len = sprintf(buf, "%lu\r\n", ((SDS *)decodedVal->ptr)->len);
     if(mdbSendReply(fd, buf, len) < 0) {
         // 发送失败

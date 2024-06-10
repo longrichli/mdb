@@ -65,13 +65,6 @@ void mdbCommandLpush(mdbClient *c) {
             return;
         }
 
-
-#ifdef TEST
-    // 看看obj的值
-    mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
-    mdbLogWrite(LOG_DEBUG, "obj str: %s", ((SDS *)(obj->ptr))->buf);
-    mdbLogWrite(LOG_DEBUG, "obj len: %d", ((SDS *)(obj->ptr))->len);
-#endif
         // 添加到列表
         if(mdbListAddNodeHead(l, obj) == NULL) {
             // 添加失败
@@ -82,17 +75,6 @@ void mdbCommandLpush(mdbClient *c) {
             return;
         }
     }
-#ifdef TEST
-    // 遍历列表，看添加进去了没
-    listNode *node = mdbListFirst(l);
-    while(node != NULL) {
-        mobj *obj = node->value;
-        mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
-        mdbLogWrite(LOG_DEBUG, "obj str: %s", ((SDS *)(obj->ptr))->buf);
-        mdbLogWrite(LOG_DEBUG, "obj len: %d", ((SDS *)(obj->ptr))->len);
-        node = mdbListNextNode(node);
-    }
-#endif
     // 回复客户端OK
     if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
         // 发送失败
@@ -168,17 +150,6 @@ void mdbCommandRpush(mdbClient *c) {
             return;
         }
     }
-#ifdef TEST
-    // 遍历列表，看添加进去了没
-    listNode *node = mdbListFirst(l);
-    while(node != NULL) {
-        mobj *obj = node->value;
-        mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
-        mdbLogWrite(LOG_DEBUG, "obj str: %s", ((SDS *)(obj->ptr))->buf);
-        mdbLogWrite(LOG_DEBUG, "obj len: %d", ((SDS *)(obj->ptr))->len);
-        node = mdbListNextNode(node);
-    }
-#endif
     // 回复客户端OK
     if(mdbSendReply(fd, "OK\r\n", MDB_REP_OK) < 0) {
         // 发送失败
@@ -235,10 +206,8 @@ void mdbCommandLpop(mdbClient *c) {
     }
     // 获取节点的字符串对象
     mobj *obj = node->value;
-    mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
     // dup一个新的字符串对象
     mobj *newObj = mdbDupStringObject(obj);
-    mdbLogWrite(LOG_DEBUG, "newObj: %s", newObj == NULL ? "NULL": "NOT NULL");
 
     if(newObj == NULL) {
         // 创建失败
@@ -320,10 +289,9 @@ void mdbCommandRpop(mdbClient *c) {
     }
     // 获取节点的字符串对象
     mobj *obj = node->value;
-    mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
     // dup一个新的字符串对象
     mobj *newObj = mdbDupStringObject(obj);
-    mdbLogWrite(LOG_DEBUG, "newObj: %s", newObj == NULL ? "NULL": "NOT NULL");
+
 
     if(newObj == NULL) {
         // 创建失败
@@ -414,13 +382,10 @@ void mdbCommandLindex(mdbClient *c) {
     }
     // 获取节点的字符串对象
     mobj *obj = node->value;
-    mdbLogWrite(LOG_DEBUG, "obj: %s", obj == NULL ? "NULL": "NOT NULL");
     // dup一个新的字符串对象
     mobj *newObj = mdbDupStringObject(obj);
-    mdbLogWrite(LOG_DEBUG, "newObj: %s", newObj == NULL ? "NULL": "NOT NULL");
     // 添加\r\n
     newObj->ptr = mdbSdscat((SDS *)newObj->ptr, "\r\n");
-    mdbLogWrite(LOG_DEBUG, "newobj str: %s", ((SDS *)(newObj->ptr))->buf);
     // 回复客户端字符串对象
     if(mdbSendReply(fd, ((SDS *)(newObj->ptr))->buf, MDB_REP_STRING) < 0) {
         // 发送失败
@@ -465,7 +430,7 @@ void mdbCommandLlen(mdbClient *c) {
     linkedList *l = listObj->ptr;
     mdbLogWrite(LOG_DEBUG, "mdbCommandLlen() list length: %d", l->len);
     // 回复客户端列表长度
-    char buf[32];
+    char buf[32] = {0};
     int len = sprintf(buf, "%zu\r\n", l->len);
     if(mdbSendReply(fd, buf, len) < 0) {
         // 发送失败
@@ -555,10 +520,8 @@ void mdbCommandLinsert(mdbClient *c) {
         }
         return;
     }
-    mdbLogWrite(LOG_DEBUG, "mdbCommandLinsert() node: %s", node == NULL ? "NULL": "NOT NULL");
     // 添加到节点前或后
     l = mdbListInsertNode(l, node, valueObj, after);
-    mdbLogWrite(LOG_DEBUG, "mdbCommandLinsert() list: %s", l == NULL ? "NULL": "NOT NULL");
     if(l == NULL) {
         // 添加失败
         if(mdbSendReply(fd, "ERR: insert node to list failed\r\n", MDB_REP_ERROR) < 0) {
@@ -628,7 +591,6 @@ void mdbCommandLrem(mdbClient *c) {
         while(node != NULL && tmpCount > 0) {
             mobj *obj = node->value;
             listNode *tmpNode = mdbListPrevNode(node);
-            mdbLogWrite(LOG_DEBUG, "mdbCommandLrem() obj: %s", obj == NULL ? "NULL": "NOT NULL");
             if(mdbCompareStringObjects(obj, c->argv[3]) == 0) {
                 mdbListDelNode(l, node);
                 tmpCount--;
@@ -640,7 +602,6 @@ void mdbCommandLrem(mdbClient *c) {
         while(node != NULL && tmpCount > 0) {
             mobj *obj = node->value;
             listNode *tmpNode = mdbListNextNode(node);
-            mdbLogWrite(LOG_DEBUG, "mdbCommandLrem() obj: %s", obj == NULL ? "NULL": "NOT NULL");
             if(mdbCompareStringObjects(obj, c->argv[3]) == 0) {
                 mdbListDelNode(l, node);
                 tmpCount--;
@@ -649,7 +610,7 @@ void mdbCommandLrem(mdbClient *c) {
         }
     }
     // 发送移除的数量
-    char buf[32];
+    char buf[32] = {0};
     sprintf(buf, "%d\r\n", abs((int)count) - tmpCount);
     if(mdbSendReply(fd, buf, strlen(buf)) < 0) {
         // 发送失败
@@ -875,14 +836,11 @@ void mdbCommandLrange(mdbClient *c) {
     SDS *retArray = mdbSdsNewempty();
     while(node != NULL && start <= stop) {
         mobj *obj = node->value;
-        mdbLogWrite(LOG_DEBUG, "mdbCommandLrange() obj: %s", obj == NULL ? "NULL": "NOT NULL");
         retArray = mdbSdscat(retArray, ((SDS *)(obj->ptr))->buf);
         retArray = mdbSdscat(retArray, "\r\n");
-        mdbLogWrite(LOG_DEBUG, "-------1");
         node = mdbListNextNode(node);
         start++;
     }
-    mdbLogWrite(LOG_DEBUG, "-------2");
     if(mdbSdslen(retArray) <= 0) {
         if(mdbSendReply(fd, "(empty array)\r\n", MDB_REP_ERROR) < 0) {
             // 发送失败
@@ -890,7 +848,6 @@ void mdbCommandLrange(mdbClient *c) {
         }
         return;
     }
-    mdbLogWrite(LOG_DEBUG, "-------3");
     // 发送数组
     if(mdbSendReply(fd, retArray->buf, MDB_REP_ARRAY) < 0) {
         // 发送失败
