@@ -18,7 +18,7 @@ int main() {
         fprintf(stderr, "Err: Connect MDB Server failed\n");
         exit(EXIT_FAILURE);
     }
-    for(int i = 0; i < 500; i++) {
+    for(int i = 0; i < 100; i++) {
         int random = rand() & 0xffff;
         if(random < 0xffff * 0.3) {
             sendCommand(serverFd, "decrby num 51");

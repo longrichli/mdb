@@ -10,9 +10,9 @@
 set key value
 get key
 append key value
-incrby key increment            x
-decrby key decrement            x
-incr key                        x
+incrby key increment
+decrby key decrement
+incr key
 strlen key
 setrange key offset value
 getrange key start end
@@ -59,8 +59,8 @@ keys pattern
 del key
 type key
 exists key
-rename key newkey      x
-renamex key newkey     x
+rename key newkey
+renamex key newkey
 
 
 
